@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Integration Service</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Аккуратный тонкий скроллбар */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6 selection:bg-indigo-500 selection:text-white">
+<div class="max-w-[1800px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+    
+    <!-- HEADER -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">🚀</span>
+            <div>
+                <h1 class="text-xl font-bold text-slate-950">API Integration Service</h1>
+                <p class="text-xs text-slate-500">Панель управления процедурами и медицинскими назначениями</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <button id="exportElasticBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+                <span>📤</span> Выгрузить индекс из ES
+            </button>
+            <button id="createKeysBtnHeader" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold py-2 px-4 rounded-lg shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+                <span>🗄️</span> Создать keys из index
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 p-6">
+        
+        <!-- LEFT PANEL: Commands (Col span 3) -->
+        <aside class="xl:col-span-3 flex flex-col gap-5 bg-slate-50 border border-slate-200 rounded-xl p-5">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2 mb-3 flex justify-between items-center">
+                    <span>📋 Команды интеграции</span>
+                    <span class="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-200/50">30</span>
+                </h3>
+                <div class="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1" id="commandsList">
+                    <!-- Загружается динамически -->
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-200 pt-4 space-y-4">
+                <div class="bg-white border border-slate-200 rounded-lg p-4 text-center shadow-sm">
+                    <button id="exportElasticSideBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow transition duration-150 text-sm">
+                        📤 Экспорт Elasticsearch → БД
+                    </button>
+                    <span class="block text-[11px] text-slate-500 mt-2">Запускает фоновую выгрузку в таблицы index и index_final</span>
+                </div>
+                
+                <div class="bg-white border border-slate-200 rounded-lg p-4 text-center shadow-sm">
+                    <button id="exportToKeysBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow transition duration-150 text-sm">
+                        📋 Выгрузить в keys (из ES)
+                    </button>
+                    <span class="block text-[11px] text-slate-500 mt-2">Записывает данные в таблицу keys по порядку колонок из sort_headers</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER PANEL: Request Builder (Col span 5) -->
+        <main class="xl:col-span-5 flex flex-col gap-6">
+            
+            <!-- Quick GET Panel -->
+            <section class="bg-teal-50/50 border border-teal-200/60 rounded-xl p-5">
+                <h4 class="text-xs font-bold text-teal-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <span>🔍</span> Быстрый запрос по CompositionUid (GET)
+                </h4>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="compositionUidInput" value="550e8400-e29b-41d4-a716-446655440000" class="flex-grow bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    <button id="sendGetByUidBtn" class="bg-teal-700 hover:bg-teal-800 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition duration-150 text-sm whitespace-nowrap">
+                        🔎 Найти
+                    </button>
+                </div>
+                <span class="block text-[11px] text-slate-500 mt-2">Выполняет GET к /api/v1/assignment/findByCompositionUid</span>
+            </section>
+
+            <!-- JSON Payload Editor -->
+            <section class="bg-white border border-slate-200 rounded-xl p-5 flex flex-col gap-3 shadow-sm">
+                <div class="flex justify-between items-center">
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Payload Editor</h4>
+                    <span class="text-[10px] text-slate-400 font-mono">JSON Format</span>
+                </div>
+                <textarea id="payloadEditor" placeholder="JSON payload будет загружен после выбора команды..." class="w-full h-80 bg-slate-50 border border-slate-200 rounded-lg p-3 font-mono text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y"></textarea>
+                <div class="flex flex-wrap gap-2.5">
+                    <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition duration-150 text-sm flex items-center gap-1.5">
+                        <span>📤</span> Отправить
+                    </button>
+                    <button id="resetBtn" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 transition duration-150 text-sm shadow-sm">
+                        🔄 Сбросить к шаблону
+                    </button>
+                    <button id="reloadConfigBtn" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 transition duration-150 text-sm shadow-sm">
+                        💾 Загрузить из БД
+                    </button>
+                </div>
+            </section>
+
+            <!-- Quick parameters editor -->
+            <section class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <h4 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-1.5">
+                    <span>⚡</span> Быстрое редактирование параметров
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-60 overflow-y-auto pr-1" id="quickFormFields">
+                    <!-- Поля формы загружаются динамически -->
+                </div>
+                <div class="flex flex-wrap gap-2.5 border-t border-slate-200 mt-4 pt-4">
+                    <button id="loadJsonToFormBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-1.5 px-4 rounded-lg transition duration-150 text-xs">
+                        📥 Загрузить в форму (из JSON)
+                    </button>
+                    <button id="updateJsonFromFormBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-1.5 px-4 rounded-lg transition duration-150 text-xs">
+                        📤 Обновить JSON из формы
+                    </button>
+                    <button id="clearFormBtn" class="bg-white hover:bg-slate-50 text-slate-400 font-semibold py-1.5 px-4 rounded-lg border border-slate-200 transition duration-150 text-xs">
+                        🗑️ Очистить
+                    </button>
+                </div>
+            </section>
+
+            <!-- Пакетный запуск команд -->
+            <section class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+                    <span>🔄</span> Пакетный запуск команд по номерам
+                </h4>
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="batchSequenceInput" placeholder="Например: 1, 3, 13" class="flex-grow bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                        <button id="runBatchBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition duration-150 text-sm whitespace-nowrap">
+                            🚀 Запустить серию
+                        </button>
+                    </div>
+                    <span class="block text-[11px] text-slate-500">Введите номера команд через запятую. Каждая команда будет выполняться со своим шаблоном. Интервал между запусками — 20 секунд.</span>
+                </div>
+            </section>
+        </main>
+
+        <!-- RIGHT PANEL: Response Console (Col span 4) -->
+        <section class="xl:col-span-4 flex flex-col gap-5 bg-white border border-slate-200 rounded-xl p-5 shadow-sm h-[82vh]">
+            <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-1.5">
+                <span>📡</span> Консоль трассировки
+            </h3>
+            
+            <!-- Auth headers -->
+            <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Tenant ID</label>
+                    <input type="text" id="tenantId" value="14932313369" class="bg-white border border-slate-300 rounded px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">User ID</label>
+                    <input type="text" id="userId" value="1" class="bg-white border border-slate-300 rounded px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <!-- Чекбокс автоэкспорта -->
+            <div class="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <input type="checkbox" id="autoExportCheckbox" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
+                <label for="autoExportCheckbox" class="text-xs font-semibold text-slate-700 select-none cursor-pointer">Автоматическая загрузка индекса</label>
+            </div>
+
+            <!-- Таблица мониторинга статусов -->
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-1.5">
+                    <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider">📊 Мониторинг переходов статусов</span>
+                    <button onclick="fetchStatusTracker()" class="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200/50 font-semibold">Обновить</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-[11px]">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-500 uppercase font-semibold">
+                                <th class="py-1">Сущность (ID / Код)</th>
+                                <th class="py-1 text-slate-500">Предпоследний</th>
+                                <th class="py-1 text-slate-900 font-bold">Текущий</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
+                            <tr>
+                                <td class="py-1.5 pr-2">
+                                    <span class="block text-slate-900 font-semibold font-sans">Назначение (assignmentId)</span>
+                                    <span class="block text-[9px] text-slate-500 font-mono truncate max-w-[140px]" id="tracker-assign-id" title="Ожидание...">—</span>
+                                </td>
+                                <td class="py-1.5 text-slate-500 text-xs" id="tracker-assign-prev">—</td>
+                                <td class="py-1.5 font-bold text-indigo-600 text-xs" id="tracker-assign-curr">—</td>
+                            </tr>
+                            <tr>
+                                <td class="py-1.5 pr-2">
+                                    <span class="block text-slate-900 font-semibold font-sans">Процедура (procedureCode)</span>
+                                    <span class="block text-[9px] text-slate-500 font-mono truncate max-w-[140px]" id="tracker-proc-code" title="Ожидание...">—</span>
+                                </td>
+                                <td class="py-1.5 text-slate-500 text-xs" id="tracker-proc-prev">—</td>
+                                <td class="py-1.5 font-bold text-emerald-600 text-xs" id="tracker-proc-curr">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex justify-between items-center text-[9px] text-slate-400 font-mono pt-1.5 border-t border-slate-100">
+                    <span class="truncate max-w-[170px]" id="tracker-command" title="Запустившая команда">Триггер: —</span>
+                    <span id="tracker-updated">Изм.: —</span>
+                </div>
+            </div>
+
+            <div id="statusBadge" class="flex justify-start"></div>
+
+            <!-- Split Panel: Sent JSON and Server Response -->
+            <div class="flex flex-col gap-4 flex-grow overflow-hidden">
+                <!-- Sent JSON payload section -->
+                <div class="flex flex-col h-1/3 min-h-[120px] bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100/80 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-slate-600 tracking-wider uppercase">📤 Отправленный JSON (Request Body)</span>
+                    </div>
+                    <pre class="p-3 text-slate-700 font-mono text-[11px] overflow-y-auto whitespace-pre-wrap leading-relaxed flex-grow" id="sentRequestContent">—</pre>
+                </div>
+
+                <!-- Server Response section -->
+                <div class="flex flex-col h-2/3 bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100/80 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-slate-600 tracking-wider uppercase">📥 Ответ сервера (Response Body)</span>
+                    </div>
+                    <pre class="p-3 text-slate-800 font-mono text-xs overflow-y-auto whitespace-pre-wrap leading-relaxed flex-grow" id="responseContent">—</pre>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+    let currentCommandName = null;
+    let currentTemplate = null;
+    let autoExportTimeout = null; // Глобальный идентификатор таймера автоэкспорта
+    let loadedCommands = [];      // Список всех загруженных команд с сервера
+
+    const quickFields = [
+        { key: "assignmentCompositionUid", label: "UID назначения (assignmentCompositionUid)" },
+        { key: "compositionUid", label: "Composition UID (для GET-запроса)" },
+        { key: "code", label: "Код процедуры" },
+        { key: "doctorName", label: "ФИО врача" },
+        { key: "doctorJob", label: "Должность врача" },
+        { key: "workplaceId", label: "ID рабочего места" },
+        { key: "resultCompositionUid", label: "UID результата" },
+        { key: "careCaseId", label: "ID случая лечения" },
+        { key: "patientId", label: "ID пациента" },
+        { key: "ehrId", label: "ID ЭМК" },
+        { key: "assignmentId", label: "ID назначения (assignmentId)" },
+        { key: "procedureCode", label: "Код процедуры (procedureCode)" },
+        { key: "assignmentName", label: "Название назначения" }
+    ];
+
+    const commandsListDiv = document.getElementById('commandsList');
+    const payloadEditor = document.getElementById('payloadEditor');
+    const sendBtn = document.getElementById('sendBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const reloadConfigBtn = document.getElementById('reloadConfigBtn');
+    const createKeysBtnHeader = document.getElementById('createKeysBtnHeader');
+    const exportElasticBtn = document.getElementById('exportElasticBtn');
+    const exportElasticSideBtn = document.getElementById('exportElasticSideBtn');
+    const exportToKeysBtn = document.getElementById('exportToKeysBtn');
+    const sendGetByUidBtn = document.getElementById('sendGetByUidBtn');
+    const compositionUidInput = document.getElementById('compositionUidInput');
+    const loadJsonToFormBtn = document.getElementById('loadJsonToFormBtn');
+    const updateJsonFromFormBtn = document.getElementById('updateJsonFromFormBtn');
+    const clearFormBtn = document.getElementById('clearFormBtn');
+    const tenantIdInput = document.getElementById('tenantId');
+    const userIdInput = document.getElementById('userId');
+    const responseContentDiv = document.getElementById('responseContent');
+    const sentRequestContentDiv = document.getElementById('sentRequestContent');
+    const statusBadge = document.getElementById('statusBadge');
+    const autoExportCheckbox = document.getElementById('autoExportCheckbox');
+    const batchSequenceInput = document.getElementById('batchSequenceInput');
+    const runBatchBtn = document.getElementById('runBatchBtn');
+
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    function showStatus(text, isError = false) {
+        statusBadge.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-bold ${isError ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}">${text}</span>`;
+    }
+
+    function displayResponse(status, data) {
+        let formattedRes = '';
+        let formattedReq = '—';
+        
+        if (data) {
+            if (data.request_payload) {
+                try {
+                    formattedReq = JSON.stringify(data.request_payload, null, 2);
+                } catch(e) {
+                    formattedReq = String(data.request_payload);
+                }
+            }
+            
+            const mainResponse = data.response !== undefined ? data.response : data;
+            try { 
+                formattedRes = JSON.stringify(mainResponse, null, 2); 
+            } catch(e) { 
+                formattedRes = String(mainResponse); 
+            }
+        }
+        
+        sentRequestContentDiv.textContent = formattedReq;
+        responseContentDiv.innerHTML = `<strong>Код статуса: ${status}</strong>\n${formattedRes}`;
+    }
+
+    // Запрос текущего состояния отслеживаемых сущностей из БД
+    async function fetchStatusTracker() {
+        try {
+            const resp = await fetch('/config/status-tracker');
+            if (!resp.ok) return;
+            const data = await resp.json();
+            
+            document.getElementById('tracker-assign-id').textContent = data.assignment_id || '—';
+            document.getElementById('tracker-assign-id').title = data.assignment_id || '—';
+            document.getElementById('tracker-assign-prev').textContent = data.previous_assignment_status || '—';
+            document.getElementById('tracker-assign-curr').textContent = data.current_assignment_status || '—';
+            
+            document.getElementById('tracker-proc-code').textContent = data.procedure_code || '—';
+            document.getElementById('tracker-proc-code').title = data.procedure_code || '—';
+            document.getElementById('tracker-proc-prev').textContent = data.previous_procedure_status || '—';
+            document.getElementById('tracker-proc-curr').textContent = data.current_procedure_status || '—';
+            
+            document.getElementById('tracker-command').textContent = `Триггер: ${data.trigger_command || '—'}`;
+            document.getElementById('tracker-command').title = data.trigger_command || '—';
+            document.getElementById('tracker-updated').textContent = `Изм.: ${data.last_updated || '—'}`;
+        } catch (err) {
+            console.error('Ошибка получения данных трекера:', err);
+        }
+    }
+
+    // Вспомогательная функция для планирования автоэкспорта при необходимости
+    // Для одиночных команд delaySeconds по умолчанию 15, для серии команд — 12
+    function triggerAutoExportIfNeeded(delaySeconds = 15) {
+        if (autoExportCheckbox.checked) {
+            clearTimeout(autoExportTimeout);
+            showStatus(`Автоэкспорт запустится через ${delaySeconds} сек`, false);
+            autoExportTimeout = setTimeout(() => {
+                exportElastic();
+            }, delaySeconds * 1000);
+        }
+    }
+
+    // Рекурсивный поиск всех ключей внутри объекта/массива шаблона
+    function findKeysRecursively(obj, keysSet = new Set()) {
+        if (typeof obj !== 'object' || obj === null) return keysSet;
+        if (Array.isArray(obj)) {
+            for (let i = 0; i < obj.length; i++) {
+                findKeysRecursively(obj[i], keysSet);
+            }
+        } else {
+            for (let key in obj) {
+                keysSet.add(key);
+                findKeysRecursively(obj[key], keysSet);
+            }
+        }
+        return keysSet;
+    }
+
+    // Динамическое обновление видимости полей в зависимости от ключей в шаблоне
+    function updateQuickFormVisibility(template) {
+        const presentKeys = findKeysRecursively(template);
+        let visibleCount = 0;
+        
+        quickFields.forEach(field => {
+            const container = document.getElementById(`container_${field.key}`);
+            if (container) {
+                if (presentKeys.has(field.key)) {
+                    container.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    container.style.display = 'none';
+                }
+            }
+        });
+        
+        const placeholder = document.getElementById('quick-form-placeholder');
+        if (placeholder) {
+            if (visibleCount > 0) {
+                placeholder.style.display = 'none';
+            } else {
+                placeholder.style.display = 'block';
+                placeholder.textContent = 'Для выбранной команды нет доступных параметров быстрого редактирования.';
+            }
+        }
+    }
+
+    async function loadCommands() {
+        try {
+            const resp = await fetch('/commands');
+            const data = await resp.json();
+            loadedCommands = data.commands; // Сохраняем глобально для работы автозапуска по номерам
+            commandsListDiv.innerHTML = '';
+            loadedCommands.forEach((cmd, idx) => {
+                const div = document.createElement('div');
+                div.className = 'p-3 my-1 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg cursor-pointer transition-all duration-150 text-xs font-mono text-slate-700 flex items-center justify-between group shadow-sm';
+                div.innerHTML = `
+                    <span class="truncate pr-2 font-medium">${(idx+1).toString().padStart(2,'0')}. ${cmd}</span>
+                    <span class="text-[9px] bg-slate-100 group-hover:bg-indigo-50 px-1.5 py-0.5 rounded text-slate-500 group-hover:text-indigo-600 transition-colors">POST</span>
+                `;
+                div.onclick = () => selectCommand(cmd, div);
+                commandsListDiv.appendChild(div);
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки команд:', err);
+        }
+    }
+
+    async function selectCommand(cmd, element) {
+        document.querySelectorAll('#commandsList div.cursor-pointer').forEach(el => {
+            el.className = 'p-3 my-1 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg cursor-pointer transition-all duration-150 text-xs font-mono text-slate-700 flex items-center justify-between group shadow-sm';
+        });
+        element.className = 'p-3 my-1 bg-indigo-50/50 border border-indigo-200 rounded-lg cursor-pointer transition-all duration-150 text-xs font-mono text-indigo-950 flex items-center justify-between group shadow-sm font-semibold';
+        currentCommandName = cmd;
+        const resp = await fetch(`/template/${encodeURIComponent(cmd)}`);
+        if (!resp.ok) { alert('Ошибка загрузки шаблона'); return; }
+        const data = await resp.json();
+        currentTemplate = data.template;
+        payloadEditor.value = JSON.stringify(currentTemplate, null, 2);
+        
+        clearQuickForm();
+        updateQuickFormVisibility(currentTemplate);
+        loadJsonToForm(); // Предзаполняем поля формы значениями из шаблона
+    }
+
+    function clearQuickForm() {
+        quickFields.forEach(field => {
+            const input = document.getElementById(`field_${field.key}`);
+            if (input) input.value = '';
+        });
+    }
+
+    function loadJsonToForm() {
+        let jsonText = payloadEditor.value.trim();
+        if (!jsonText) return;
+        try {
+            const payload = JSON.parse(jsonText);
+            function findValue(obj, key) {
+                if (typeof obj !== 'object' || obj === null) return null;
+                if (obj.hasOwnProperty(key)) return obj[key];
+                for (let k in obj) {
+                    const val = findValue(obj[k], key);
+                    if (val !== null) return val;
+                }
+                return null;
+            }
+            quickFields.forEach(field => {
+                const val = findValue(payload, field.key);
+                const input = document.getElementById(`field_${field.key}`);
+                if (val !== null && input) input.value = (typeof val === 'object') ? JSON.stringify(val) : String(val);
+                else if (input) input.value = '';
+            });
+            showStatus('Форма заполнена из JSON', false);
+        } catch(e) { alert('Неверный JSON: ' + e.message); }
+    }
+
+    function updateJsonFromForm() {
+        let jsonText = payloadEditor.value.trim();
+        if (!jsonText) jsonText = '{}';
+        let payload;
+        try { payload = JSON.parse(jsonText); } catch(e) { alert('Неверный JSON в редакторе: ' + e.message); return; }
+        function updateByKey(obj, key, value) {
+            if (typeof obj !== 'object' || obj === null) return false;
+            if (obj.hasOwnProperty(key)) { obj[key] = value; return true; }
+            for (let k in obj) if (updateByKey(obj[k], key, value)) return true;
+            return false;
+        }
+        quickFields.forEach(field => {
+            const input = document.getElementById(`field_${field.key}`);
+            let val = input.value.trim();
+            if (val === '') return;
+            try { let parsed = JSON.parse(val); val = parsed; } catch(e) { /* keep string */ }
+            if (!updateByKey(payload, field.key, val)) payload[field.key] = val;
+        });
+        payloadEditor.value = JSON.stringify(payload, null, 2);
+        showStatus('JSON обновлён из формы', false);
+    }
+
+    function buildQuickForm() {
+        const container = document.getElementById('quickFormFields');
+        container.innerHTML = '';
+        quickFields.forEach(field => {
+            const div = document.createElement('div');
+            div.className = 'flex flex-col gap-1';
+            div.id = `container_${field.key}`;
+            div.style.display = 'none'; // По умолчанию скрываем до выбора шаблона
+            div.innerHTML = `
+                <label class="text-[10px] font-semibold text-slate-700 uppercase tracking-wider">${field.label}</label>
+                <input type="text" id="field_${field.key}" placeholder="${field.key}" class="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+            `;
+            container.appendChild(div);
+        });
+
+        // Создаем заглушку-подсказку для формы
+        const placeholder = document.createElement('div');
+        placeholder.id = 'quick-form-placeholder';
+        placeholder.className = 'col-span-full text-center py-6 text-slate-400 text-xs italic';
+        placeholder.textContent = 'Выберите команду из списка слева, чтобы увидеть доступные параметры для быстрого редактирования.';
+        container.appendChild(placeholder);
+    }
+
+    async function reloadConfigAndResolve() {
+        let jsonText = payloadEditor.value.trim();
+        if (!jsonText) { alert('Нет JSON для обработки'); return; }
+        let payload;
+        try { payload = JSON.parse(jsonText); } catch(e) { alert('Ошибка парсинга JSON: ' + e.message); return; }
+        const resp = await fetch('/resolve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!resp.ok) throw new Error('Ошибка /resolve');
+        const result = await resp.json();
+        payloadEditor.value = JSON.stringify(result.resolved, null, 2);
+        showStatus('Маркеры заменены значениями из БД', false);
+    }
+
+    function resetToTemplate() {
+        if (currentTemplate) { payloadEditor.value = JSON.stringify(currentTemplate, null, 2); clearQuickForm(); showStatus('Сброшено к исходному шаблону', false); }
+        else alert('Сначала выберите команду');
+    }
+
+    async function sendRequest() {
+        if (!currentCommandName) { alert('Выберите команду'); return; }
+        let jsonText = payloadEditor.value.trim();
+        if (!jsonText) { alert('Введите payload'); return; }
+        let payload;
+        try { payload = JSON.parse(jsonText); } catch(e) { alert('Неверный JSON: ' + e.message); return; }
+        const tenant = tenantIdInput.value.trim();
+        const user = userIdInput.value.trim();
+        if (!tenant || !user) { alert('Введите Tenant ID и User ID'); return; }
+        const requestBody = { command_name: currentCommandName, tenant_id: tenant, user_id: user, override_payload: payload };
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Отправка...';
+        try {
+            const resp = await fetch('/execute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
+            const data = await resp.json();
+            displayResponse(resp.status, data);
+            if (resp.ok) {
+                showStatus('Успешно', false);
+                triggerAutoExportIfNeeded(15); // Запуск отложенного автоэкспорта для одиночного запроса (15 сек)
+            } else {
+                showStatus(`Ошибка ${resp.status}`, true);
+            }
+            await fetchStatusTracker(); // Обновление мониторинга переходов
+        } catch(err) { displayResponse(0, { error: err.message }); showStatus('Сетевая ошибка', true); }
+        finally { sendBtn.disabled = false; sendBtn.innerHTML = '<span>📤</span> Отправить'; }
+    }
+
+    async function sendGetByCompositionUid() {
+        const compositionUid = compositionUidInput.value.trim();
+        if (!compositionUid) { alert('Введите CompositionUid'); return; }
+        const tenant = tenantIdInput.value.trim();
+        const user = userIdInput.value.trim();
+        if (!tenant || !user) { alert('Введите Tenant ID и User ID'); return; }
+        const commandName = "Найти назначение по CompositionUid (GET)";
+        const payload = { compositionUid: compositionUid };
+        const requestBody = { command_name: commandName, tenant_id: tenant, user_id: user, override_payload: payload };
+        sendGetByUidBtn.disabled = true;
+        sendGetByUidBtn.textContent = 'Поиск...';
+        try {
+            const resp = await fetch('/execute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
+            const data = await resp.json();
+            displayResponse(resp.status, data);
+            if (resp.ok) {
+                showStatus('Успешно', false);
+                triggerAutoExportIfNeeded(15); // Запуск отложенного автоэкспорта для одиночного запроса (15 сек)
+            } else {
+                showStatus(`Ошибка ${resp.status}`, true);
+            }
+            await fetchStatusTracker(); // Обновление мониторинга переходов
+        } catch(err) { displayResponse(0, { error: err.message }); showStatus('Сетевая ошибка', true); }
+        finally { sendGetByUidBtn.disabled = false; sendGetByUidBtn.textContent = '🔎 Найти'; }
+    }
+
+    async function createKeysTable() {
+        const btn = createKeysBtnHeader;
+        btn.disabled = true;
+        btn.textContent = 'Создаётся...';
+        try {
+            const resp = await fetch('/create_keys', { method: 'POST' });
+            const data = await resp.json();
+            displayResponse(resp.status, data);
+            if (resp.ok) showStatus('Таблица keys создана', false);
+            else showStatus('Ошибка создания', true);
+        } catch(err) {
+            displayResponse(0, { error: err.message });
+            showStatus('Ошибка', true);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<span>🗄️</span> Создать keys из index';
+        }
+    }
+
+    async function exportElastic() {
+        const btn = exportElasticBtn;
+        btn.disabled = true;
+        btn.textContent = 'Выгрузка...';
+        if (exportElasticSideBtn) { exportElasticSideBtn.disabled = true; exportElasticSideBtn.textContent = 'Выгрузка...'; }
+        try {
+            const resp = await fetch('/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ export_index_final: true }) });
+            const data = await resp.json();
+            displayResponse(resp.status, data);
+            if (resp.ok) showStatus('Экспорт запущен в фоне', false);
+            else showStatus('Ошибка запуска', true);
+            setTimeout(fetchStatusTracker, 1000); // Кратковременная задержка перед обновлением мониторинга
+        } catch(err) {
+            displayResponse(0, { error: err.message });
+            showStatus('Ошибка', true);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<span>📤</span> Выгрузить индекс из ES';
+            if (exportElasticSideBtn) { exportElasticSideBtn.disabled = false; exportElasticSideBtn.textContent = '📤 Экспорт Elasticsearch → БД'; }
+        }
+    }
+
+    async function exportToKeys() {
+        const btn = exportToKeysBtn;
+        btn.disabled = true;
+        btn.textContent = 'Выгрузка...';
+        try {
+            const resp = await fetch('/export_to_keys', { method: 'POST' });
+            const data = await resp.json();
+            displayResponse(resp.status, data);
+            if (resp.ok) showStatus('Экспорт в keys запущен в фоне', false);
+            else showStatus('Ошибка запуска', true);
+        } catch(err) {
+            displayResponse(0, { error: err.message });
+            showStatus('Ошибка', true);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '📋 Выгрузить в keys (из ES)';
+        }
+    }
+
+    async function updateConfig(key) {
+        const inputVal = document.getElementById('cfg-' + key).value;
+        try {
+            const res = await fetch(`/config/${key}?value=${encodeURIComponent(inputVal)}`, { method: 'PUT' });
+            if (res.ok) {
+                showStatus(`Параметр обновлен успешно: ${key}`, false);
+                await fetchStatusTracker(); // Обновление переходов сразу после сохранения ID/Кода
+            } else {
+                showStatus(`Ошибка обновления ${key}`, true);
+            }
+        } catch (err) {
+            showStatus(`Исключение при обновлении: ${err}`, true);
+        }
+    }
+
+    // Асинхронный пакетный последовательный запуск серии команд по номерам
+    async function executeBatchSequence(indices) {
+        runBatchBtn.disabled = true;
+        const originalText = runBatchBtn.textContent;
+
+        for (let i = 0; i < indices.length; i++) {
+            const cmdIdx = indices[i];
+            const cmdName = loadedCommands[cmdIdx];
+            if (!cmdName) continue;
+
+            showStatus(`Серия: выполнение #${cmdIdx + 1} (${i + 1}/${indices.length})`, false);
+            runBatchBtn.textContent = `Запуск ${i + 1}/${indices.length}...`;
+
+            try {
+                // 1. Получаем шаблон для выбранной по индексу команды
+                const templateResp = await fetch(`/template/${encodeURIComponent(cmdName)}`);
+                if (!templateResp.ok) {
+                    showStatus(`Ошибка шаблона для #${cmdIdx + 1}`, true);
+                    continue;
+                }
+                const templateData = await templateResp.json();
+                const templatePayload = templateData.template;
+
+                // 2. Выполняем команду
+                const tenant = tenantIdInput.value.trim();
+                const user = userIdInput.value.trim();
+                const requestBody = { 
+                    command_name: cmdName, 
+                    tenant_id: tenant, 
+                    user_id: user, 
+                    override_payload: templatePayload 
+                };
+
+                const executeResp = await fetch('/execute', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(requestBody) 
+                });
+                const executeData = await executeResp.json();
+                displayResponse(executeResp.status, executeData);
+
+                if (executeResp.ok) {
+                    showStatus(`Команда #${cmdIdx + 1} выполнена`, false);
+                    
+                    // По требованию пользователя: автоэкспорт должен отрабатывать между 
+                    // всеми командами серии строго через 12 секунд после каждой команды
+                    triggerAutoExportIfNeeded(12);
+                } else {
+                    showStatus(`Команда #${cmdIdx + 1} завершилась с ошибкой`, true);
+                }
+                await fetchStatusTracker(); // Сверяем мониторинг на каждом шаге серии
+            } catch (err) {
+                displayResponse(0, { error: err.message });
+                showStatus(`Сетевая ошибка на команде #${cmdIdx + 1}`, true);
+            }
+
+            // Ожидание 20 секунд перед следующей командой (или завершением серии)
+            if (i < indices.length - 1) {
+                for (let countdown = 20; countdown > 0; countdown--) {
+                    runBatchBtn.textContent = `Пауза ${countdown}с...`;
+                    await delay(1000);
+                }
+            }
+        }
+
+        runBatchBtn.disabled = false;
+        runBatchBtn.textContent = originalText;
+        
+        // Не перезаписываем статус успешного окончания серии, если там уже висит таймер автоэкспорта
+        if (!autoExportCheckbox.checked) {
+            showStatus('Серия команд успешно завершена', false);
+        }
+    }
+
+    // Парсинг ввода и валидация перед запуском
+    async function runBatch() {
+        const rawInput = batchSequenceInput.value.trim();
+        if (!rawInput) {
+            alert('Введите номера команд через запятую (например: 1, 3, 15)');
+            return;
+        }
+
+        const parts = rawInput.split(',');
+        const indices = [];
+
+        for (let part of parts) {
+            const num = parseInt(part.trim(), 10);
+            if (isNaN(num) || num < 1 || num > loadedCommands.length) {
+                alert(`Недопустимый номер команды: "${part}". Пожалуйста, укажите числа от 1 до ${loadedCommands.length}.`);
+                return;
+            }
+            indices.push(num - 1); // Переводим в 0-индексацию
+        }
+
+        if (indices.length === 0) return;
+
+        const confirmMessage = `Запустить последовательное выполнение команд под номерами: ${indices.map(idx => idx + 1).join(', ')} с интервалом в 20 секунд?`;
+        if (confirm(confirmMessage)) {
+            await executeBatchSequence(indices);
+        }
+    }
+
+    // Модифицированная функция загрузки конфигов — теперь вешает обработчик на сохранение
+    async function fetchConfig() {
+        try {
+            const res = await fetch('/config');
+            const data = await res.json();
+            const container = document.getElementById('config-container');
+            container.innerHTML = '';
+            
+            Object.entries(data).forEach(([k, v]) => {
+                const row = document.createElement('div');
+                row.className = 'flex flex-col gap-1 border-b border-slate-200 pb-2';
+                row.innerHTML = `
+                    <span class="text-xs text-slate-500 font-mono">${k}</span>
+                    <div class="flex gap-2">
+                        <input type="text" value="${v}" id="cfg-${k}" class="bg-white text-xs px-2 py-1 rounded w-full border border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium">
+                        <button onclick="updateConfig('${k}')" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded shadow-sm font-semibold">Save</button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки настроек конфигурации:', err);
+        }
+    }
+
+    async function init() {
+        buildQuickForm();
+        await loadCommands();
+        await fetchConfig();
+        await fetchStatusTracker(); // Инициализация таблицы переходов статусов
+        sendBtn.onclick = sendRequest;
+        resetBtn.onclick = resetToTemplate;
+        reloadConfigBtn.onclick = reloadConfigAndResolve;
+        createKeysBtnHeader.onclick = createKeysTable;
+        exportElasticBtn.onclick = exportElastic;
+        if (exportElasticSideBtn) exportElasticSideBtn.onclick = exportElastic;
+        if (exportToKeysBtn) exportToKeysBtn.onclick = exportToKeys;
+        sendGetByUidBtn.onclick = sendGetByCompositionUid;
+        loadJsonToFormBtn.onclick = loadJsonToForm;
+        updateJsonFromFormBtn.onclick = updateJsonFromForm;
+        clearFormBtn.onclick = clearQuickForm;
+        runBatchBtn.onclick = runBatch;
+
+        // Отслеживание ручного отключения автовыгрузки
+        autoExportCheckbox.onchange = () => {
+            if (!autoExportCheckbox.checked) {
+                clearTimeout(autoExportTimeout);
+                showStatus('Автоматическая загрузка отменена', false);
+            }
+        };
+
+        document.querySelectorAll('input').forEach(inp => {
+            inp.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const action = confirm('Копировать? (Отмена — Вставить)');
+                if (action) { inp.select(); document.execCommand('copy'); }
+                else { navigator.clipboard.readText().then(text => inp.value = text); }
+            });
+        });
+    }
+    init();
+</script>
+</body>
+</html>
