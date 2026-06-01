@@ -13,8 +13,15 @@ async def lifespan(app: FastAPI):
     async with db_manager.pool.acquire() as conn:
         await db_ops.init_config_table(conn)
         await db_ops.init_templates_table(conn)
+    
+    # Запуск асинхронного Kafka продюсера
+    from app.kafka_producer import kafka_manager
+    await kafka_manager.start()
+    
     yield
     # Завершение работы
+    from app.kafka_producer import kafka_manager
+    await kafka_manager.stop()
     await db_manager.disconnect()
 
 app = FastAPI(
@@ -34,3 +41,7 @@ app.include_router(export.router)
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def web_interface(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
+
+@app.get("/settings", response_class=HTMLResponse, include_in_schema=False)
+async def settings_interface(request: Request):
+    return templates.TemplateResponse(request=request, name="settings.html")

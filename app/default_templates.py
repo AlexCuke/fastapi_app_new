@@ -440,5 +440,20 @@ DEFAULT_TEMPLATES = [
         "payload": {
             "compositionUid": "@config:assignmentCompositionUid"
         }
+    },
+    {
+        "name": "Выгрузить в Kafka (ProcedureAssignmentTopic)",
+        "method": "KAFKA",
+        "path": "ProcedureService_ProcedureAssignmentTopic",
+        "payload": {
+            "assignmentCompositionUid": "@config:assignmentCompositionUid",
+            "assignmentId": "@config:assignmentId",
+            "code": "@config:code",
+            "procedureCode": "@config:procedureCode",
+            "patientId": "@config:patientId",
+            "ehrId": "@config:ehrId",
+            "updated": "@now_iso",
+            "message_source": "fastapi_integration_service"
+        }
     }
 ]

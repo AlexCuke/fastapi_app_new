@@ -96,16 +96,34 @@ async def refresh_status_tracker(conn: asyncpg.Connection, trigger_command: str 
     """)
     if not table_exists:
         return
-        
-    db_row = await conn.fetchrow("""
-        SELECT "procedureAssignment.assignmentStatus" as assign_status, 
-               "procedureAssignment.status" as proc_status, 
-               "procedureAssignment.updated" as updated_at
+
+    # Динамически опрашиваем колонки таблицы index для защиты от усечения (procedureCod / procedureCode)
+    columns_rows = await conn.fetch("""
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'index'
+    """)
+    cols = [r['column_name'] for r in columns_rows]
+
+    # Самовосстанавливающийся маппинг колонок
+    col_assign_id = "procedureAssignment.assignmentId" if "procedureAssignment.assignmentId" in cols else next((c for c in cols if c.lower().endswith("assignmentid")), "procedureAssignment.assignmentId")
+    col_assign_status = "procedureAssignment.assignmentStatus" if "procedureAssignment.assignmentStatus" in cols else next((c for c in cols if c.lower().endswith("assignmentstatus")), "procedureAssignment.assignmentStatus")
+    col_proc_code = "procedureAssignment.procedureCode" if "procedureAssignment.procedureCode" in cols else next((c for c in cols if c.lower().startswith("procedureassignment.procedurecod")), "procedureAssignment.procedureCode")
+    col_proc_status = "procedureAssignment.status" if "procedureAssignment.status" in cols else next((c for c in cols if c.lower().endswith("status")), "procedureAssignment.status")
+    col_updated = "procedureAssignment.updated" if "procedureAssignment.updated" in cols else next((c for c in cols if c.lower().endswith("updated")), "procedureAssignment.updated")
+
+    # Безопасный динамический SQL-запрос
+    query = f"""
+        SELECT "{col_assign_status}" as assign_status, 
+               "{col_proc_status}" as proc_status, 
+               "{col_updated}" as updated_at
         FROM index 
-        WHERE "procedureAssignment.assignmentId" = $1 
-          AND "procedureAssignment.procedureCode" = $2
+        WHERE "{col_assign_id}" = $1 
+          AND "{col_proc_code}" = $2
         LIMIT 1
-    """, assignment_id, procedure_code)
+    """
+    
+    db_row = await conn.fetchrow(query, assignment_id, procedure_code)
     
     db_assign_status = db_row['assign_status'] if db_row else "—"
     db_proc_status = db_row['proc_status'] if db_row else "—"
@@ -141,6 +159,90 @@ async def refresh_status_tracker(conn: asyncpg.Connection, trigger_command: str 
                     trigger_command, last_updated
                 ) VALUES ($1, $2, $3, $4, $5, $6)
             """, assignment_id, db_assign_status, prev_assign_status, procedure_code, db_proc_status, prev_proc_status, db_updated_at)
+
+async def sync_current_assignment(conn: asyncpg.Connection):
+    """Синхронизирует строки по assignmentCompositionUid в таблицы current_assignment и currrent_assignment."""
+    config = await load_config(conn)
+    uid = config.get('assignmentCompositionUid')
+    if not uid:
+        return
+        
+    index_exists = await conn.fetchval("""
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_name = 'index'
+        )
+    """)
+    if not index_exists:
+        return
+        
+    columns_rows = await conn.fetch("""
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'index'
+    """)
+    cols = [r['column_name'] for r in columns_rows]
+    
+    col_uid = "procedureAssignment.assignmentCompositionUid" if "procedureAssignment.assignmentCompositionUid" in cols else next((c for c in cols if c.lower().endswith("assignmentcompositionuid")), None)
+    if not col_uid:
+        return
+        
+    # Дублируем запись для исключения сбоев из-за опечаток в ТЗ
+    await conn.execute("DROP TABLE IF EXISTS current_assignment")
+    await conn.execute(f'CREATE TABLE current_assignment AS SELECT * FROM index WHERE "{col_uid}" = $1', uid)
+    
+    await conn.execute("DROP TABLE IF EXISTS currrent_assignment")
+    await conn.execute("CREATE TABLE currrent_assignment AS SELECT * FROM current_assignment")
+
+async def copy_index_to_index_final_async(conn: asyncpg.Connection) -> int:
+    """Асинхронно переносит данные из таблицы index в index_final по структуре sort_headers."""
+    # 1. Проверяем существование таблицы index
+    index_exists = await conn.fetchval("""
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_name = 'index'
+        )
+    """)
+    if not index_exists:
+        raise ValueError("Таблица 'index' не найдена. Пожалуйста, сначала импортируйте CSV или запустите экспорт.")
+        
+    # 2. Получаем схему колонок для index_final
+    columns_final = await get_column_order_from_db(conn, 'sort_headers', 'index_final')
+    if not columns_final:
+        raise ValueError("Схема колонок для 'index_final' не найдена в 'sort_headers'. Пожалуйста, сначала нажмите 'Обновить столбцы'.")
+        
+    # 3. Получаем реальные колонки таблицы index
+    index_columns_rows = await conn.fetch("""
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'index'
+    """)
+    index_cols = {r['column_name'] for r in index_columns_rows}
+    
+    # 4. Пересоздаем index_final
+    await conn.execute("DROP TABLE IF EXISTS index_final")
+    
+    quoted_columns_def = ", ".join([f'"{col}" TEXT' for col in columns_final])
+    await conn.execute(f"CREATE TABLE index_final ({quoted_columns_def})")
+    
+    # 5. Строим безопасный динамический запрос для копирования данных
+    select_parts = []
+    for col in columns_final:
+        if col in index_cols:
+            select_parts.append(f'"{col}"')
+        else:
+            select_parts.append(f"NULL::text as \"{col}\"")
+            
+    select_clause = ", ".join(select_parts)
+    insert_cols = ", ".join([f'"{col}"' for col in columns_final])
+    
+    query = f"INSERT INTO index_final ({insert_cols}) SELECT {select_clause} FROM index"
+    result = await conn.execute(query)
+    
+    # Обновляем трекер статусов, так как данные в index_final обновились
+    await refresh_status_tracker(conn, "Синхронизация index -> index_final")
+    
+    return int(result.split()[-1]) if result else 0
 
 async def load_config(conn: asyncpg.Connection) -> Dict[str, str]:
     rows = await conn.fetch("SELECT key, value FROM config")
@@ -217,3 +319,41 @@ async def get_all_templates_db(conn: asyncpg.Connection) -> List[asyncpg.Record]
 
 async def get_template_by_name_db(conn: asyncpg.Connection, name: str) -> Optional[asyncpg.Record]:
     return await conn.fetchrow("SELECT id, name, method, path, payload FROM request_templates WHERE name = $1", name)
+
+async def load_headers_to_table_async(conn: asyncpg.Connection) -> int:
+    """Асинхронно считывает заголовки из csv-файлов схемы и импортирует их в sort_headers."""
+    import csv, os
+    file_mapping = {
+        'sort.csv': 'index',
+        'sort_index.csv': 'index_final',
+        'keys.csv': 'keys'
+    }
+    table_name = 'sort_headers'
+    
+    await conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} (filename TEXT, header TEXT)")
+    await conn.execute(f"DELETE FROM {table_name}")
+    
+    inserted = 0
+    for filepath, new_name in file_mapping.items():
+        if not os.path.exists(filepath):
+            continue
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
+            reader = csv.reader(f, delimiter=';')
+            try:
+                raw_headers = next(reader)
+            except StopIteration:
+                continue
+            
+            clean_headers = []
+            for col in raw_headers:
+                col = col.strip().strip('\\ufeff')
+                if col:
+                    clean_headers.append(col)
+                    
+            for header in clean_headers:
+                await conn.execute(
+                    f"INSERT INTO {table_name} (filename, header) VALUES ($1, $2)", 
+                    new_name, header
+                )
+                inserted += 1
+    return inserted

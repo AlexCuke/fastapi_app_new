@@ -36,6 +36,9 @@
             </div>
         </div>
         <div class="flex flex-wrap gap-3">
+            <a href="/settings" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+                <span>⚙️</span> Системные настройки
+            </a>
             <button id="exportElasticBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
                 <span>📤</span> Выгрузить индекс из ES
             </button>
@@ -102,10 +105,13 @@
                 </div>
                 <textarea id="payloadEditor" placeholder="JSON payload будет загружен после выбора команды..." class="w-full h-80 bg-slate-50 border border-slate-200 rounded-lg p-3 font-mono text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y"></textarea>
                 <div class="flex flex-wrap gap-2.5">
-                    <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition duration-150 text-sm flex items-center gap-1.5">
-                        <span>📤</span> Отправить
+                    <button id="sendBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition duration-200 text-sm flex items-center gap-1.5">
+                        <span>📤</span> Отправить (HTTP)
                     </button>
-                    <button id="resetBtn" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 transition duration-150 text-sm shadow-sm">
+                    <button id="sendKafkaBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition duration-200 text-sm flex items-center gap-1.5">
+                        <span>📡</span> Отправить в Kafka
+                    </button>
+                    <button id="resetBtn" class="bg-white hover:bg-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 transition duration-150 text-sm shadow-sm">
                         🔄 Сбросить к шаблону
                     </button>
                     <button id="reloadConfigBtn" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 transition duration-150 text-sm shadow-sm">
@@ -194,19 +200,22 @@
                         <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
                             <tr>
                                 <td class="py-1.5 pr-2">
-                                    <span class="block text-slate-900 font-semibold font-sans">Назначение (assignmentId)</span>
+                                    <span class="block text-slate-900 font-semibold font-sans text-xs">Назначение (assignmentCompositionUid)</span>
                                     <span class="block text-[9px] text-slate-500 font-mono truncate max-w-[140px]" id="tracker-assign-id" title="Ожидание...">—</span>
                                 </td>
                                 <td class="py-1.5 text-slate-500 text-xs" id="tracker-assign-prev">—</td>
                                 <td class="py-1.5 font-bold text-indigo-600 text-xs" id="tracker-assign-curr">—</td>
                             </tr>
+                        </tbody>
+                        <tbody id="tracker-procedures-body" class="divide-y divide-slate-100 text-slate-700 font-medium border-t border-slate-200">
+                            <!-- Сюда динамически добавляются все procedureCod из current_assignment -->
                             <tr>
                                 <td class="py-1.5 pr-2">
                                     <span class="block text-slate-900 font-semibold font-sans">Процедура (procedureCode)</span>
-                                    <span class="block text-[9px] text-slate-500 font-mono truncate max-w-[140px]" id="tracker-proc-code" title="Ожидание...">—</span>
+                                    <span class="block text-[9px] text-slate-500 font-mono truncate max-w-[140px]">—</span>
                                 </td>
-                                <td class="py-1.5 text-slate-500 text-xs" id="tracker-proc-prev">—</td>
-                                <td class="py-1.5 font-bold text-emerald-600 text-xs" id="tracker-proc-curr">—</td>
+                                <td class="py-1.5 text-slate-500 text-xs">—</td>
+                                <td class="py-1.5 font-bold text-emerald-600 text-xs">—</td>
                             </tr>
                         </tbody>
                     </table>
@@ -266,6 +275,7 @@
     const commandsListDiv = document.getElementById('commandsList');
     const payloadEditor = document.getElementById('payloadEditor');
     const sendBtn = document.getElementById('sendBtn');
+    const sendKafkaBtn = document.getElementById('sendKafkaBtn');
     const resetBtn = document.getElementById('resetBtn');
     const reloadConfigBtn = document.getElementById('reloadConfigBtn');
     const createKeysBtnHeader = document.getElementById('createKeysBtnHeader');
@@ -324,15 +334,41 @@
             if (!resp.ok) return;
             const data = await resp.json();
             
-            document.getElementById('tracker-assign-id').textContent = data.assignment_id || '—';
-            document.getElementById('tracker-assign-id').title = data.assignment_id || '—';
+            // Отображаем assignmentCompositionUid на месте ID назначения
+            document.getElementById('tracker-assign-id').textContent = data.assignment_composition_uid || '—';
+            document.getElementById('tracker-assign-id').title = data.assignment_composition_uid || '—';
             document.getElementById('tracker-assign-prev').textContent = data.previous_assignment_status || '—';
             document.getElementById('tracker-assign-curr').textContent = data.current_assignment_status || '—';
             
-            document.getElementById('tracker-proc-code').textContent = data.procedure_code || '—';
-            document.getElementById('tracker-proc-code').title = data.procedure_code || '—';
-            document.getElementById('tracker-proc-prev').textContent = data.previous_procedure_status || '—';
-            document.getElementById('tracker-proc-curr').textContent = data.current_procedure_status || '—';
+            // Динамический рендеринг всех найденных procedureCod из current_assignment
+            const tbody = document.getElementById('tracker-procedures-body');
+            tbody.innerHTML = '';
+            
+            if (data.procedures && data.procedures.length > 0) {
+                data.procedures.forEach(proc => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="py-1.5 pr-2">
+                            <span class="block text-slate-900 font-semibold font-sans">Процедура (procedureCode)</span>
+                            <span class="block text-[9px] text-slate-500 font-mono truncate max-w-[140px]" title="${proc.code}">${proc.code}</span>
+                        </td>
+                        <td class="py-1.5 text-slate-500 text-xs">${proc.previous_status || '—'}</td>
+                        <td class="py-1.5 font-bold text-emerald-600 text-xs">${proc.current_status || '—'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td class="py-1.5 pr-2">
+                            <span class="block text-slate-900 font-semibold font-sans">Процедура (procedureCode)</span>
+                            <span class="block text-[9px] text-slate-500 font-mono truncate max-w-[140px]">—</span>
+                        </td>
+                        <td class="py-1.5 text-slate-500 text-xs">—</td>
+                        <td class="py-1.5 font-bold text-emerald-600 text-xs">—</td>
+                    </tr>
+                `;
+            }
             
             document.getElementById('tracker-command').textContent = `Триггер: ${data.trigger_command || '—'}`;
             document.getElementById('tracker-command').title = data.trigger_command || '—';
@@ -547,13 +583,70 @@
             displayResponse(resp.status, data);
             if (resp.ok) {
                 showStatus('Успешно', false);
-                triggerAutoExportIfNeeded(15); // Запуск отложенного автоэкспорта для одиночного запроса (15 сек)
+                
+                // Проверяем специальные команды для отложенного автозапуска через 20 секунд
+                if (currentCommandName === "Создать назначение (assignment)" || 
+                    currentCommandName === "Запланировать назначение (plan) - полный") {
+                    
+                    clearTimeout(autoExportTimeout);
+                    showStatus('Запуск автовыгрузки индекса через 20 сек...', false);
+                    autoExportTimeout = setTimeout(() => {
+                        exportElastic();
+                    }, 20000);
+                } else {
+                    triggerAutoExportIfNeeded(15); // Запуск обычного автоэкспорта (15 сек)
+                }
             } else {
                 showStatus(`Ошибка ${resp.status}`, true);
             }
             await fetchStatusTracker(); // Обновление мониторинга переходов
         } catch(err) { displayResponse(0, { error: err.message }); showStatus('Сетевая ошибка', true); }
-        finally { sendBtn.disabled = false; sendBtn.innerHTML = '<span>📤</span> Отправить'; }
+        finally { sendBtn.disabled = false; sendBtn.innerHTML = '<span>📤</span> Отправить (HTTP)'; }
+    }
+
+    // Специальная функция отправки текущей полезной нагрузки JSON напрямую в Kafka
+    async function sendKafkaRequest() {
+        let jsonText = payloadEditor.value.trim();
+        if (!jsonText) { alert('Введите payload'); return; }
+        let payload;
+        try { payload = JSON.parse(jsonText); } catch(e) { alert('Неверный JSON: ' + e.message); return; }
+        const tenant = tenantIdInput.value.trim();
+        const user = userIdInput.value.trim();
+        if (!tenant || !user) { alert('Введите Tenant ID и User ID'); return; }
+        
+        // Используем встроенный шаблон команды брокера Kafka
+        const commandName = "Выгрузить в Kafka (ProcedureAssignmentTopic)";
+        const requestBody = { 
+            command_name: commandName, 
+            tenant_id: tenant, 
+            user_id: user, 
+            override_payload: payload 
+        };
+        
+        sendKafkaBtn.disabled = true;
+        sendKafkaBtn.textContent = 'Отправка в Kafka...';
+        try {
+            const resp = await fetch('/execute', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(requestBody) 
+            });
+            const data = await resp.json();
+            displayResponse(resp.status, data);
+            if (resp.ok) {
+                showStatus('Успешно опубликовано в Kafka', false);
+                triggerAutoExportIfNeeded(12); // Запуск автовыгрузки через 12 секунд
+            } else {
+                showStatus(`Ошибка Kafka: ${resp.status}`, true);
+            }
+            await fetchStatusTracker(); // Обновление мониторинга переходов
+        } catch(err) { 
+            displayResponse(0, { error: err.message }); 
+            showStatus('Сетевая ошибка Kafka', true); 
+        } finally { 
+            sendKafkaBtn.disabled = false; 
+            sendKafkaBtn.innerHTML = '<span>📡</span> Отправить в Kafka'; 
+        }
     }
 
     async function sendGetByCompositionUid() {
@@ -744,7 +837,7 @@
 
         for (let part of parts) {
             const num = parseInt(part.trim(), 10);
-            if (isNaN(num) || num < 1 || num > loadedCommands.length) {
+            if (num < 1 || num > loadedCommands.length) {
                 alert(`Недопустимый номер команды: "${part}". Пожалуйста, укажите числа от 1 до ${loadedCommands.length}.`);
                 return;
             }
@@ -759,37 +852,15 @@
         }
     }
 
-    // Модифицированная функция загрузки конфигов — теперь вешает обработчик на сохранение
-    async function fetchConfig() {
-        try {
-            const res = await fetch('/config');
-            const data = await res.json();
-            const container = document.getElementById('config-container');
-            container.innerHTML = '';
-            
-            Object.entries(data).forEach(([k, v]) => {
-                const row = document.createElement('div');
-                row.className = 'flex flex-col gap-1 border-b border-slate-200 pb-2';
-                row.innerHTML = `
-                    <span class="text-xs text-slate-500 font-mono">${k}</span>
-                    <div class="flex gap-2">
-                        <input type="text" value="${v}" id="cfg-${k}" class="bg-white text-xs px-2 py-1 rounded w-full border border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium">
-                        <button onclick="updateConfig('${k}')" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded shadow-sm font-semibold">Save</button>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-        } catch (err) {
-            console.error('Ошибка загрузки настроек конфигурации:', err);
-        }
-    }
+    // Модифицированная функция загрузки настроек конфигурации — убрана лишняя отрисовка
+    // (все параметры теперь настраиваются на отдельной странице системных настроек)
 
     async function init() {
         buildQuickForm();
         await loadCommands();
-        await fetchConfig();
         await fetchStatusTracker(); // Инициализация таблицы переходов статусов
         sendBtn.onclick = sendRequest;
+        sendKafkaBtn.onclick = sendKafkaRequest; // Привязка обработчика для кнопки паблишинга в Kafka
         resetBtn.onclick = resetToTemplate;
         reloadConfigBtn.onclick = reloadConfigAndResolve;
         createKeysBtnHeader.onclick = createKeysTable;

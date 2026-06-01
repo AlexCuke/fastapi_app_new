@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "1"
 
+    # Apache Kafka Brokers
+    KAFKA_BOOTSTRAP_SERVERS: str = "kafka-dev.m15.dzm:9092"
+    KAFKA_TOPIC_NAME: str = "ProcedureService_ProcedureAssignmentTopic"
+
     # Имена в таблице sort_headers
     SORT_FILENAME_DB: str = "index.csv"
     SORT_INDEX_FILENAME_DB: str = "index_final"

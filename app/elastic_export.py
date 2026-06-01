@@ -125,6 +125,9 @@ async def run_export(export_index_final: bool = True):
             print(f"Created {settings.OUTPUT_CSV}: {len(rows)} rows, {len(final_pa)} cols.")
             await db_ops.load_csv_to_table_async(conn, settings.OUTPUT_CSV, 'index')
 
+            # После импорта обновляем таблицы current_assignment и currrent_assignment
+            await db_ops.sync_current_assignment(conn)
+
             # После импорта данных из Elasticsearch фиксируем изменения логов статусов в базе данных
             await db_ops.refresh_status_tracker(conn, trigger_command="Импорт из Elasticsearch")
 
