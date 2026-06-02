@@ -1,5 +1,5 @@
-from typing import AsyncGenerator
 import asyncpg
+from typing import AsyncGenerator
 from app.config import settings
 
 class DatabaseSessionManager:
