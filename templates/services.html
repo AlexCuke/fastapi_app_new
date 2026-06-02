@@ -3,40 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сервис — API Integration Service</title>
+    <title>Сервисы — API Integration Service</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6">
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6 selection:bg-indigo-500 selection:text-white">
 <div class="max-w-[1000px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
     
+    <!-- HEADER -->
     <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center gap-4">
         <div class="flex items-center gap-3">
-            <span class="text-2xl">🛠️</span>
+            <span class="text-2xl">🚀</span>
             <div>
                 <h1 class="text-xl font-bold text-slate-950">Сервисные функции</h1>
-                <p class="text-xs text-slate-500">Управление индексами и командами</p>
+                <p class="text-xs text-slate-500">Управление индексами и экспортом</p>
             </div>
         </div>
-        <a href="/" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border text-sm">⬅️ На главную</a>
+        <a href="/" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm">
+            ⬅️ На главную
+        </a>
     </header>
 
     <div class="p-6 space-y-6">
         <div id="statusAlert" class="hidden px-4 py-3 rounded-lg border text-sm font-semibold"></div>
 
-        <section class="bg-slate-50 border rounded-lg p-5 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-sm">
-            <div class="max-w-xl">
-                <h3 class="text-base font-bold text-slate-800">Выгрузить индекс из ES</h3>
-                <p class="text-sm text-slate-500">Фоновая миграция данных в таблицы PostgreSQL.</p>
+        <section class="space-y-4">
+            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🔍 Интеграция с Elasticsearch</h2>
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-sm">
+                <div class="max-w-xl">
+                    <h3 class="text-base font-bold text-slate-800">Выгрузить индекс из ES</h3>
+                    <p class="text-sm text-slate-500 mt-1">Данные будут записаны в таблицы <code class="font-mono text-indigo-600">index</code> и <code class="font-mono text-indigo-600">index_final</code>.</p>
+                </div>
+                <button id="exportElasticBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-150 text-sm">Запустить экспорт</button>
             </div>
-            <button id="exportElasticBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg text-sm transition shadow-md">📤 Начать экспорт</button>
         </section>
 
-        <section class="bg-slate-50 border rounded-lg p-5 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-sm border-amber-200">
-            <div class="max-w-xl">
-                <h3 class="text-base font-bold text-amber-700">Обновить список команд</h3>
-                <p class="text-sm text-slate-500">Перезагрузить все методы из <code class="bg-amber-50">default_templates.py</code> в БД.</p>
+        <section class="space-y-4">
+            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🗄️ Структура БД</h2>
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-sm">
+                <div class="max-w-xl">
+                    <h3 class="text-base font-bold text-slate-800">Создать keys из index</h3>
+                    <p class="text-sm text-slate-500 mt-1">Генерирует таблицу <code class="font-mono text-indigo-600">keys</code> на основе текущего index.</p>
+                </div>
+                <button id="createKeysBtn" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold py-3 px-6 rounded-lg shadow-sm text-sm">Создать keys</button>
             </div>
-            <button id="resetTemplatesBtn" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-lg text-sm transition shadow-md">🔄 Обновить</button>
         </section>
     </div>
 </div>
@@ -51,12 +60,10 @@
 
     document.getElementById('exportElasticBtn').onclick = async () => {
         const r = await fetch('/export', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({export_index_final: true}) });
-        if (r.ok) showAlert('Экспорт запущен в фоне');
+        if (r.ok) showAlert('Экспорт запущен');
     };
-
-    document.getElementById('resetTemplatesBtn').onclick = async () => {
-        if (!confirm('Все текущие шаблоны в БД будут перезаписаны. Продолжить?')) return;
-        const r = await fetch('/commands/reset-templates', { method: 'POST' });
+    document.getElementById('createKeysBtn').onclick = async () => {
+        const r = await fetch('/create_keys', { method: 'POST' });
         const d = await r.json();
         if (r.ok) showAlert(d.message);
     };

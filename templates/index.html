@@ -15,75 +15,118 @@
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6 selection:bg-indigo-500 selection:text-white">
 <div class="max-w-[1800px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
     
+    <!-- HEADER -->
     <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-row justify-between items-center">
         <div class="flex items-center gap-3">
             <span class="text-2xl">🚀</span>
             <div>
                 <h1 class="text-xl font-bold text-slate-950">API Integration Service</h1>
-                <p class="text-[10px] text-slate-500 font-mono">
-                    ID: <span id="displayTenant" class="text-indigo-600 font-bold">...</span> | 
-                    User: <span id="displayUser" class="text-indigo-600 font-bold">...</span>
-                </p>
+                <p class="text-xs text-slate-500">Панель управления процедурами и медицинскими назначениями</p>
             </div>
         </div>
         <div class="flex items-center gap-2">
-            <a href="/settings" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm text-sm">⚙️ Настройки</a>
-            <a href="/services" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm">🛠️ Сервис</a>
+            <a href="/settings" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+                <span>⚙️</span> Настройки
+            </a>
+            <a href="/services" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+                <span>🛠️</span> Сервисы
+            </a>
         </div>
     </header>
 
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 p-6">
-        <!-- LEFT: COMMANDS -->
+        <!-- LEFT PANEL -->
         <aside class="xl:col-span-3 flex flex-col gap-5 bg-slate-50 border border-slate-200 rounded-xl p-5">
-            <h3 class="text-lg font-bold text-slate-900 border-b pb-2 mb-3">📋 Команды <span id="cmdCount" class="text-xs opacity-50"></span></h3>
-            <div class="space-y-1.5 max-h-[65vh] overflow-y-auto pr-1" id="commandsList"></div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2 mb-3 flex justify-between items-center">
+                    <span>📋 Команды</span>
+                    <span id="cmdCount" class="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-200/50">...</span>
+                </h3>
+                <div class="space-y-1.5 max-h-[65vh] overflow-y-auto pr-1" id="commandsList"></div>
+            </div>
         </aside>
 
-        <!-- CENTER: EDITOR -->
+        <!-- CENTER PANEL -->
         <main class="xl:col-span-5 flex flex-col gap-6">
-            <section class="bg-teal-50 border border-teal-200 rounded-xl p-5 shadow-sm">
-                <h4 class="text-xs font-bold text-teal-800 uppercase mb-3">🔍 Быстрый поиск (GET)</h4>
-                <div class="flex gap-3">
-                    <input type="text" id="compositionUidInput" placeholder="Composition UID" class="flex-grow border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-teal-500 outline-none">
-                    <button id="sendGetByUidBtn" class="bg-teal-700 text-white font-semibold py-2 px-5 rounded-lg text-sm">Найти</button>
-                </div>
-                <div class="mt-3 flex items-center gap-2">
-                    <input type="checkbox" id="autoUpdateConfigCheckbox" class="w-3.5 h-3.5 cursor-pointer accent-teal-600">
-                    <label for="autoUpdateConfigCheckbox" class="text-[11px] text-teal-900 font-medium cursor-pointer select-none">Обновить параметры БД из ответа</label>
+            <section class="bg-teal-50/50 border border-teal-200/60 rounded-xl p-5 shadow-sm">
+                <h4 class="text-xs font-bold text-teal-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <span>🔍</span> Быстрый поиск (GET)
+                </h4>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="compositionUidInput" placeholder="Введите Composition UID" class="flex-grow bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    <button id="sendGetByUidBtn" class="bg-teal-700 hover:bg-teal-800 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition text-sm">Найти</button>
                 </div>
             </section>
 
             <section class="bg-white border border-slate-200 rounded-xl p-5 flex flex-col gap-3 shadow-sm">
-                <textarea id="payloadEditor" class="w-full h-80 bg-slate-50 border rounded-lg p-3 font-mono text-xs focus:ring-1 focus:ring-indigo-500 outline-none resize-y"></textarea>
+                <div class="flex justify-between items-center">
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Payload Editor</h4>
+                    <span class="text-[10px] text-slate-400 font-mono">JSON Format</span>
+                </div>
+                <textarea id="payloadEditor" class="w-full h-80 bg-slate-50 border border-slate-200 rounded-lg p-3 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y"></textarea>
                 <div class="flex flex-wrap gap-2.5">
-                    <button id="sendBtn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg text-sm shadow-sm"><span>📤</span> HTTP</button>
-                    <button id="sendKafkaBtn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg text-sm shadow-sm"><span>📡</span> Kafka</button>
-                    <button id="reloadConfigBtn" class="bg-white border py-2 px-4 rounded-lg text-sm shadow-sm">Resolve БД</button>
+                    <button id="sendBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-1.5"><span>📤</span> HTTP</button>
+                    <button id="sendKafkaBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-1.5"><span>📡</span> Kafka</button>
+                    <button id="resetBtn" class="bg-white hover:bg-slate-50 border border-slate-300 py-2 px-4 rounded-lg text-sm">Сброс</button>
+                    <button id="reloadConfigBtn" class="bg-white hover:bg-slate-50 border border-slate-300 py-2 px-4 rounded-lg text-sm">Resolve БД</button>
                 </div>
             </section>
 
             <section class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h4 class="text-sm font-bold text-slate-700 mb-4">⚡ Актуальные параметры</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-60 overflow-y-auto pr-1" id="quickFormFields"></div>
+                <h4 class="text-sm font-bold text-slate-700 mb-4">⚡ Быстрые параметры</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-60 overflow-y-auto" id="quickFormFields"></div>
+                <div class="flex flex-wrap gap-2.5 border-t border-slate-200 mt-4 pt-4">
+                    <button id="loadJsonToFormBtn" class="bg-slate-100 py-1.5 px-4 rounded-lg text-xs">Загрузить в форму</button>
+                    <button id="updateJsonFromFormBtn" class="bg-slate-100 py-1.5 px-4 rounded-lg text-xs">Обновить JSON</button>
+                </div>
             </section>
         </main>
 
-        <!-- RIGHT: CONSOLE -->
+        <!-- RIGHT PANEL -->
         <section class="xl:col-span-4 flex flex-col gap-5 bg-white border border-slate-200 rounded-xl p-5 shadow-sm h-[82vh]">
-            <h3 class="text-lg font-bold text-slate-900 border-b pb-2">📡 Трассировка</h3>
-            <div class="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border">
+            <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-1.5"><span>📡</span> Трассировка</h3>
+            
+            <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <div>
+                    <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">Tenant ID</label>
+                    <input type="text" id="tenantId" value="14932313369" class="bg-white border border-slate-300 rounded px-2.5 py-1 text-xs w-full">
+                </div>
+                <div>
+                    <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">User ID</label>
+                    <input type="text" id="userId" value="1" class="bg-white border border-slate-300 rounded px-2.5 py-1 text-xs w-full">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                 <input type="checkbox" id="autoExportCheckbox" class="w-4 h-4 cursor-pointer">
                 <label for="autoExportCheckbox" class="text-xs font-semibold text-slate-700 cursor-pointer">Авто-выгрузка индекса</label>
             </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2 overflow-y-auto max-h-[300px]">
+                <div class="flex justify-between items-center border-b pb-1.5">
+                    <span class="text-[10px] font-bold text-slate-700 uppercase">📊 Статусы</span>
+                    <button onclick="fetchStatusTracker()" class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200/50">Обновить</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-[11px]">
+                        <thead>
+                            <tr class="border-b text-slate-500 font-semibold"><th class="py-1">Сущность</th><th class="py-1">Пред.</th><th class="py-1">Тек.</th></tr>
+                        </thead>
+                        <tbody id="tracker-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <div id="statusBadge" class="h-6"></div>
+
             <div class="flex flex-col gap-4 flex-grow overflow-hidden">
                 <div class="flex flex-col h-1/3 bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                    <div class="bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase">📤 Request</div>
-                    <pre id="sentRequestContent" class="p-3 text-[10px] font-mono whitespace-pre-wrap overflow-auto">—</pre>
+                    <div class="bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-600 uppercase">📤 Request</div>
+                    <pre class="p-3 text-slate-700 font-mono text-[10px] overflow-auto whitespace-pre-wrap" id="sentRequestContent">—</pre>
                 </div>
                 <div class="flex flex-col h-2/3 bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                    <div class="bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase border-b">📥 Response</div>
-                    <pre id="responseContent" class="p-3 text-[11px] font-mono whitespace-pre-wrap overflow-auto">—</pre>
+                    <div class="bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-600 uppercase border-b border-slate-200">📥 Response</div>
+                    <pre class="p-3 text-slate-800 font-mono text-[11px] overflow-auto whitespace-pre-wrap" id="responseContent">—</pre>
                 </div>
             </div>
         </section>
@@ -91,116 +134,163 @@
 </div>
 
 <script>
-    let appTenantId = "1", appUserId = "1", currentCommandName = "", currentTemplate = null;
+    let currentCommandName = null;
+    let currentTemplate = null;
+    let autoExportTimeout = null;
+    let loadedCommands = [];
 
     const quickFields = [
         { key: "assignmentCompositionUid", label: "UID назначения" },
         { key: "code", label: "Код процедуры" },
         { key: "doctorName", label: "ФИО врача" },
-        { key: "ehrId", label: "ID ЭМК" },
-        { key: "patientId", label: "ID пациента" },
-        { key: "careCaseId", label: "ID случая" },
-        { key: "assignmentId", label: "ID назначения" },
-        { key: "resultCompositionUid", label: "UID результата" }
+        { key: "workplaceId", label: "ID рабочего места" },
+        { key: "assignmentId", label: "ID назначения" }
     ];
 
-    async function loadIdentity() {
-        try {
-            const r = await fetch('/config/app-settings');
-            const d = await r.json();
-            appTenantId = d.TENANT_ID; appUserId = d.USER_ID;
-            document.getElementById('displayTenant').textContent = appTenantId;
-            document.getElementById('displayUser').textContent = appUserId;
-        } catch(e) { console.error("Identity error", e); }
-    }
-
-    function buildForm() {
-        const container = document.getElementById('quickFormFields');
-        container.innerHTML = '';
-        quickFields.forEach(f => {
-            const div = document.createElement('div');
-            div.id = `cont_${f.key}`;
-            div.className = "hidden flex flex-col gap-1";
-            div.innerHTML = `<label class="text-[10px] font-bold text-slate-400 uppercase">${f.label}</label><input id="field_${f.key}" class="border rounded px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500">`;
-            container.appendChild(div);
-        });
-    }
-
-    function updateFormVisibility(template) {
-        const str = JSON.stringify(template);
-        quickFields.forEach(f => {
-            const el = document.getElementById(`cont_${f.key}`);
-            if (str.includes(`@config:${f.key}`)) el.classList.remove('hidden');
-            else el.classList.add('hidden');
-        });
-    }
+    const commandsListDiv = document.getElementById('commandsList');
+    const payloadEditor = document.getElementById('payloadEditor');
+    const responseContentDiv = document.getElementById('responseContent');
+    const sentRequestContentDiv = document.getElementById('sentRequestContent');
+    const statusBadge = document.getElementById('statusBadge');
+    const autoExportCheckbox = document.getElementById('autoExportCheckbox');
 
     function showStatus(text, isError = false) {
-        document.getElementById('statusBadge').innerHTML = `<span class="px-3 py-1 rounded-full text-[10px] font-bold ${isError ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}">${text}</span>`;
+        statusBadge.innerHTML = `<span class="px-3 py-1 rounded-full text-[10px] font-bold ${isError ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}">${text}</span>`;
+    }
+
+    function displayResponse(status, data) {
+        if (data && data.request_payload) sentRequestContentDiv.textContent = JSON.stringify(data.request_payload, null, 2);
+        const mainResponse = data && data.response !== undefined ? data.response : data;
+        responseContentDiv.textContent = `CODE: ${status}\n${JSON.stringify(mainResponse, null, 2)}`;
+    }
+
+    async function fetchStatusTracker() {
+        try {
+            const resp = await fetch('/config/status-tracker');
+            const data = await resp.json();
+            const body = document.getElementById('tracker-body');
+            body.innerHTML = `<tr><td class="py-1">Назначение</td><td class="text-slate-400">${data.previous_assignment_status || '—'}</td><td class="font-bold text-indigo-600">${data.current_assignment_status || '—'}</td></tr>`;
+            if(data.procedures) {
+                data.procedures.forEach(p => {
+                    body.innerHTML += `<tr><td class="py-1">Пр.: ${p.code.substring(0,8)}...</td><td class="text-slate-400">${p.previous_status || '—'}</td><td class="font-bold text-emerald-600">${p.current_status || '—'}</td></tr>`;
+                });
+            }
+        } catch (e) {}
+    }
+
+    function triggerAutoExport() {
+        if (autoExportCheckbox.checked) {
+            clearTimeout(autoExportTimeout);
+            showStatus('Авто-экспорт через 15с...');
+            autoExportTimeout = setTimeout(async () => {
+                await fetch('/export', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({export_index_final: true}) });
+                showStatus('Экспорт завершен');
+                fetchStatusTracker();
+            }, 15000);
+        }
     }
 
     async function loadCommands() {
-        const r = await fetch('/commands');
-        const d = await r.json();
-        const list = document.getElementById('commandsList');
-        list.innerHTML = '';
-        d.commands.forEach((cmd, i) => {
+        const resp = await fetch('/commands');
+        const data = await resp.json();
+        loadedCommands = data.commands;
+        document.getElementById('cmdCount').textContent = loadedCommands.length;
+        commandsListDiv.innerHTML = '';
+        loadedCommands.forEach((cmd, i) => {
             const div = document.createElement('div');
-            div.className = "p-3 my-1 bg-white border rounded-lg cursor-pointer text-xs hover:border-indigo-300 shadow-sm transition-all";
-            div.innerHTML = `<span class="font-mono text-slate-400 mr-2">${(i+1).toString().padStart(2,'0')}</span> ${cmd}`;
+            div.className = 'p-3 my-1 bg-white border border-slate-200 rounded-lg cursor-pointer text-xs hover:border-indigo-300 transition-all';
+            div.innerHTML = `<span class="font-mono text-slate-500 mr-2">${(i+1).toString().padStart(2,'0')}</span> ${cmd}`;
             div.onclick = async () => {
                 currentCommandName = cmd;
-                const tr = await fetch(`/template/${encodeURIComponent(cmd)}`);
-                const td = await tr.json();
-                currentTemplate = td.template;
-                document.getElementById('payloadEditor').value = JSON.stringify(currentTemplate, null, 2);
-                updateFormVisibility(currentTemplate);
+                const r = await fetch(`/template/${encodeURIComponent(cmd)}`);
+                const d = await r.json();
+                currentTemplate = d.template;
+                payloadEditor.value = JSON.stringify(currentTemplate, null, 2);
+                loadJsonToForm();
                 document.querySelectorAll('#commandsList div').forEach(el => el.classList.remove('bg-indigo-50', 'border-indigo-300'));
                 div.classList.add('bg-indigo-50', 'border-indigo-300');
             };
-            list.appendChild(div);
+            commandsListDiv.appendChild(div);
         });
+    }
+
+    function loadJsonToForm() {
+        try {
+            const p = JSON.parse(payloadEditor.value);
+            quickFields.forEach(f => {
+                const inp = document.getElementById(`field_${f.key}`);
+                if (inp) inp.value = p[f.key] || "";
+            });
+        } catch(e) {}
+    }
+
+    function updateJsonFromForm() {
+        try {
+            const p = JSON.parse(payloadEditor.value);
+            quickFields.forEach(f => {
+                const val = document.getElementById(`field_${f.key}`).value;
+                if(val) p[f.key] = val;
+            });
+            payloadEditor.value = JSON.stringify(p, null, 2);
+            showStatus('JSON обновлен');
+        } catch(e) {}
     }
 
     async function handleRequest(url) {
         if (!currentCommandName) return alert('Выберите команду');
-        try {
-            const payload = JSON.parse(document.getElementById('payloadEditor').value);
-            const body = { command_name: currentCommandName, tenant_id: appTenantId, user_id: appUserId, override_payload: payload };
-            showStatus('Отправка...');
-            const r = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-            const d = await r.json();
-            document.getElementById('sentRequestContent').textContent = JSON.stringify(d.request_payload, null, 2);
-            document.getElementById('responseContent').textContent = `STATUS: ${r.status}\n` + JSON.stringify(d.response || d, null, 2);
-            showStatus(r.ok ? 'Успешно' : 'Ошибка', !r.ok);
-        } catch(e) { alert('Ошибка JSON'); }
+        const p = JSON.parse(payloadEditor.value);
+        const body = { 
+            command_name: currentCommandName, 
+            tenant_id: document.getElementById('tenantId').value, 
+            user_id: document.getElementById('userId').value, 
+            override_payload: p 
+        };
+        const r = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const data = await r.json();
+        displayResponse(r.status, data);
+        if (r.ok) triggerAutoExport();
     }
 
-    window.onload = async () => {
-        await loadIdentity(); buildForm(); await loadCommands();
-
+    window.onload = () => {
+        loadCommands();
+        fetchStatusTracker();
+        const qf = document.getElementById('quickFormFields');
+        quickFields.forEach(f => {
+            qf.innerHTML += `<div class="flex flex-col gap-1"><label class="text-[10px] font-bold text-slate-500 uppercase">${f.label}</label><input type="text" id="field_${f.key}" class="border rounded px-2 py-1.5 text-xs"></div>`;
+        });
         document.getElementById('sendBtn').onclick = () => handleRequest('/execute');
+        document.getElementById('sendKafkaBtn').onclick = () => handleRequest('/execute');
+        document.getElementById('resetBtn').onclick = () => { payloadEditor.value = JSON.stringify(currentTemplate, null, 2); loadJsonToForm(); };
         document.getElementById('reloadConfigBtn').onclick = async () => {
-            const r = await fetch('/resolve', { method: 'POST', headers: {'Content-Type':'application/json'}, body: document.getElementById('payloadEditor').value });
+            const r = await fetch('/resolve', { method: 'POST', headers: {'Content-Type':'application/json'}, body: payloadEditor.value });
             const d = await r.json();
-            document.getElementById('payloadEditor').value = JSON.stringify(d.resolved, null, 2);
+            payloadEditor.value = JSON.stringify(d.resolved, null, 2);
+            showStatus('Данные БД подставлены');
         };
-
+        document.getElementById('loadJsonToFormBtn').onclick = loadJsonToForm;
+        document.getElementById('updateJsonFromFormBtn').onclick = updateJsonFromForm;
+        
+        // Исправленная кнопка поиска
         document.getElementById('sendGetByUidBtn').onclick = async () => {
-            const uid = document.getElementById('compositionUidInput').value.trim();
-            if (!uid) return;
-            const body = { command_name: "Найти назначение по CompositionUid (GET)", tenant_id: appTenantId, user_id: appUserId, override_payload: { compositionUid: uid } };
-            showStatus('Поиск...');
-            const r = await fetch('/execute', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-            const d = await r.json();
-            document.getElementById('responseContent').textContent = `STATUS: ${r.status}\n` + JSON.stringify(d.response, null, 2);
-            if (r.ok) {
-                showStatus('Найдено');
-                if (document.getElementById('autoUpdateConfigCheckbox').checked && d.response) {
-                    await fetch('/config/auto-update', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(d.response) });
-                    showStatus('Найдено + БД обновлена');
-                }
-            } else showStatus('Не найдено', true);
+             const uid = document.getElementById('compositionUidInput').value.trim();
+             const tenant = document.getElementById('tenantId').value.trim();
+             const user = document.getElementById('userId').value.trim();
+             
+             if (!uid) return;
+
+             const body = { 
+                 command_name: "Найти назначение по CompositionUid (GET)", 
+                 tenant_id: tenant, 
+                 user_id: user, 
+                 override_payload: { compositionUid: uid } 
+             };
+             
+             showStatus('Поиск...');
+             const r = await fetch('/execute', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+             const data = await r.json();
+             displayResponse(r.status, data);
+             if (r.ok) showStatus('Найдено');
+             else showStatus('Не найдено', true);
         };
     };
 </script>

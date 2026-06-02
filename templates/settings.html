@@ -3,49 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Настройки — API Integration Service</title>
+    <title>Настройки приложения — API Integration Service</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6">
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6 selection:bg-indigo-500 selection:text-white">
 <div class="max-w-[1000px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
     
-    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+    <!-- HEADER -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center gap-4">
         <div class="flex items-center gap-3">
             <span class="text-2xl">⚙️</span>
             <div>
                 <h1 class="text-xl font-bold text-slate-950">Системные настройки</h1>
-                <p class="text-xs text-slate-500">Конфигурация идентификаторов и API</p>
+                <p class="text-xs text-slate-500">Конфигурация бэкенда, БД и Elasticsearch (.env)</p>
             </div>
         </div>
-        <a href="/" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border text-sm">⬅️ На главную</a>
+        <a href="/" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+            <span>⬅️</span> Вернуться на главную
+        </a>
     </header>
 
     <div class="p-6 space-y-6">
         <div id="statusAlert" class="hidden px-4 py-3 rounded-lg border text-sm font-semibold"></div>
 
         <form id="settingsForm" class="space-y-6">
+            <!-- РАЗДЕЛ: Параметры конфигурации БД (Ключ-Значение) -->
             <section class="space-y-4">
-                <h2 class="text-sm font-bold text-slate-400 uppercase border-b pb-2">🌐 API и Идентификация</h2>
+                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">⚙️ Параметры конфигурации БД (Ключ-Значение)</h2>
+                <p class="text-xs text-slate-500">Эти параметры используются для подстановки значений вместо маркеров (например, <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">@config:assignmentId</code>) в шаблонах команд.</p>
+                <div id="config-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[350px] overflow-y-auto bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <p class="text-slate-400 text-xs italic">Загрузка параметров...</p>
+                </div>
+            </section>
+
+            <!-- РАЗДЕЛ: Внешний API -->
+            <section class="space-y-4">
+                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🌐 Внешний API</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-slate-700">Системный Tenant ID</label>
-                        <input type="text" id="TENANT_ID" class="bg-white border rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                        <label class="text-xs font-semibold text-slate-700">BASE_URL</label>
+                        <input type="text" id="BASE_URL" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
                     </div>
                     <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-slate-700">Системный User ID</label>
-                        <input type="text" id="USER_ID" class="bg-white border rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
-                    </div>
-                    <div class="flex flex-col gap-1 md:col-span-2">
-                        <label class="text-xs font-semibold text-slate-700">BASE_URL</label>
-                        <input type="text" id="BASE_URL" class="bg-white border rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                        <label class="text-xs font-semibold text-slate-700">REQUEST_TIMEOUT (сек)</label>
+                        <input type="number" id="REQUEST_TIMEOUT" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
                     </div>
                 </div>
             </section>
 
-            <!-- Прочие настройки (Elastic, DB) добавляются по аналогии -->
+            <!-- РАЗДЕЛ: Elasticsearch & Apache Kafka -->
+            <section class="space-y-4">
+                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🔍 Elasticsearch & Kafka Brokers</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">ES_HOST</label>
+                        <input type="text" id="ES_HOST" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">INDEX_NAME</label>
+                        <input type="text" id="INDEX_NAME" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">SCROLL_SIZE</label>
+                        <input type="number" id="SCROLL_SIZE" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">REQUEST_TIMEOUT_ES (сек)</label>
+                        <input type="number" id="REQUEST_TIMEOUT_ES" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">OUTPUT_JSONL</label>
+                        <input type="text" id="OUTPUT_JSONL" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">OUTPUT_CSV</label>
+                        <input type="text" id="OUTPUT_CSV" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    
+                    <!-- Поля настроек Apache Kafka -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">KAFKA_BOOTSTRAP_SERVERS</label>
+                        <input type="text" id="KAFKA_BOOTSTRAP_SERVERS" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">KAFKA_TOPIC_NAME</label>
+                        <input type="text" id="KAFKA_TOPIC_NAME" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                </div>
+            </section>
 
+            <!-- РАЗДЕЛ: PostgreSQL -->
+            <section class="space-y-4">
+                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🐘 PostgreSQL Database</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">DB_HOST</label>
+                        <input type="text" id="DB_HOST" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">DB_PORT</label>
+                        <input type="number" id="DB_PORT" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">DB_NAME</label>
+                        <input type="text" id="DB_NAME" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-700">DB_USER</label>
+                        <input type="text" id="DB_USER" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                    <div class="flex flex-col gap-1 md:col-span-2">
+                        <label class="text-xs font-semibold text-slate-700">DB_PASSWORD</label>
+                        <input type="password" id="DB_PASSWORD" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Сервисные опции -->
+            <section class="space-y-4">
+                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🛠️ Сервисные опции</h2>
+                
+                <!-- Опция 1: Импорт CSV -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Импорт локального CSV в базу данных</h3>
+                        <p class="text-xs text-slate-500 mt-1">Очищает текущую таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">index</code> и импортирует туда данные напрямую из локального файла, указанного в параметре <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">OUTPUT_CSV</code>.</p>
+                    </div>
+                    <button type="button" id="importCsvBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition-all duration-150 text-sm whitespace-nowrap">
+                        📥 Импортировать CSV в index
+                    </button>
+                </div>
+
+                <!-- Опция 2: Обновление метаданных схемы столбцов (import_headers.py) -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Обновить схему столбцов</h3>
+                        <p class="text-xs text-slate-500 mt-1">Запускает разбор и перенос метаданных из конфигурационных файлов <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort.csv</code>, <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort_index.csv</code> в таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort_headers</code> базы данных.</p>
+                    </div>
+                    <button type="button" id="updateHeadersBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition-all duration-150 text-sm whitespace-nowrap">
+                        ⚙️ Обновить столбцы
+                    </button>
+                </div>
+
+                <!-- Опция 3: Синхронизация index -> index_final -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Перенос данных из index в index_final</h3>
+                        <p class="text-xs text-slate-500 mt-1">Очищает таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">index_final</code> и копирует в неё данные из <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">index</code> по структуре, указанной в схеме <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort_headers</code>.</p>
+                    </div>
+                    <button type="button" id="syncToFinalBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition-all duration-150 text-sm whitespace-nowrap">
+                        🔄 Синхронизировать в index_final
+                    </button>
+                </div>
+
+                <!-- Опция 4: Синхронизация index -> Схема Файлов (настройки сопоставления) -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Обновить таблицу настроек сопоставления (settings)</h3>
+                        <p class="text-xs text-slate-500 mt-1">Создает в БД таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">settings</code>, содержащую в первом столбце имя файла схемы, а во втором — перечень его заголовков.</p>
+                    </div>
+                    <button type="button" id="syncSettingsTableBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition-all duration-150 text-sm whitespace-nowrap">
+                        🛠️ Синхронизировать настройки файлов
+                    </button>
+                </div>
+            </section>
+
+            <!-- Кнопка сохранения -->
             <div class="border-t border-slate-200 pt-4 flex justify-end">
-                <button type="button" id="saveSettingsBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-lg shadow-sm text-sm">
+                <button type="button" id="saveSettingsBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-lg shadow-sm transition-all duration-150 text-sm">
                     💾 Сохранить конфигурацию
                 </button>
             </div>
@@ -54,28 +179,206 @@
 </div>
 
 <script>
-    const fields = ["TENANT_ID", "USER_ID", "BASE_URL"];
+    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+    const importCsvBtn = document.getElementById('importCsvBtn');
+    const updateHeadersBtn = document.getElementById('updateHeadersBtn');
+    const syncToFinalBtn = document.getElementById('syncToFinalBtn');
+    const syncSettingsTableBtn = document.getElementById('syncSettingsTableBtn');
+    const statusAlert = document.getElementById('statusAlert');
+    const fields = [
+        "BASE_URL", "REQUEST_TIMEOUT", "ES_HOST", "INDEX_NAME", 
+        "SCROLL_SIZE", "REQUEST_TIMEOUT_ES", "OUTPUT_JSONL", 
+        "OUTPUT_CSV", "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD",
+        "KAFKA_BOOTSTRAP_SERVERS", "KAFKA_TOPIC_NAME"
+    ];
 
-    async function load() {
-        const r = await fetch('/config/app-settings');
-        const d = await r.json();
-        fields.forEach(f => {
-            const el = document.getElementById(f);
-            if (el && d[f]) el.value = d[f];
-        });
+    // Безопасное отображение алертов
+    function showAlert(text, isError) {
+        if (isError === undefined) isError = false;
+        statusAlert.textContent = text;
+        
+        statusAlert.className = "px-4 py-3 rounded-lg border text-sm font-semibold block " + 
+            (isError ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200");
+            
+        setTimeout(function() {
+            statusAlert.className = 'hidden';
+        }, 6000);
     }
 
-    document.getElementById('saveSettingsBtn').onclick = async () => {
-        const payload = {};
-        fields.forEach(f => payload[f] = document.getElementById(f).value);
-        const r = await fetch('/config/app-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        if (r.ok) {
-            document.getElementById('statusAlert').textContent = "Сохранено! Сервер перезапустится для применения изменений.";
-            document.getElementById('statusAlert').className = "px-4 py-3 rounded-lg border text-sm font-semibold block bg-emerald-50 text-emerald-700 border-emerald-200";
+    // Загрузка динамических параметров конфигурации (БД)
+    async function fetchConfig() {
+        try {
+            const res = await fetch('/config');
+            const data = await res.json();
+            const container = document.getElementById('config-container');
+            container.innerHTML = '';
+            
+            Object.entries(data).forEach(([k, v]) => {
+                const row = document.createElement('div');
+                row.className = 'flex flex-col gap-1 border-b border-slate-200 pb-2';
+                row.innerHTML = `
+                    <span class="text-xs text-slate-500 font-mono">${k}</span>
+                    <div class="flex gap-2">
+                        <input type="text" value="${v}" id="cfg-${k}" class="bg-white text-xs px-2 py-1 rounded w-full border border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium">
+                        <button type="button" onclick="updateConfig('${k}')" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded shadow-sm font-semibold">Save</button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки настроек конфигурации:', err);
         }
-    };
+    }
 
-    window.onload = load;
+    async function updateConfig(key) {
+        const inputVal = document.getElementById('cfg-' + key).value;
+        try {
+            const res = await fetch(`/config/${key}?value=${encodeURIComponent(inputVal)}`, { method: 'PUT' });
+            if (res.ok) {
+                showAlert(`Параметр обновлен успешно: ${key}`, false);
+            } else {
+                showAlert(`Ошибка обновления ${key}`, true);
+            }
+        } catch (err) {
+            showAlert(`Исключение при обновлении: ${err}`, true);
+        }
+    }
+
+    async function loadAppSettings() {
+        try {
+            const res = await fetch('/config/app-settings');
+            if (!res.ok) throw new Error('Не удалось загрузить настройки');
+            const data = await res.json();
+            
+            fields.forEach(f => {
+                const input = document.getElementById(f);
+                if (input && data[f] !== undefined) {
+                    input.value = data[f];
+                }
+            });
+        } catch (err) {
+            showAlert('Ошибка при загрузке настроек: ' + err.message, true);
+        }
+    }
+
+    async function saveAppSettings() {
+        saveSettingsBtn.disabled = true;
+        saveSettingsBtn.textContent = 'Сохранение...';
+
+        const payload = {};
+        fields.forEach(f => {
+            const input = document.getElementById(f);
+            if (input) {
+                payload[f] = input.value;
+            }
+        });
+
+        try {
+            const res = await fetch('/config/app-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                showAlert('Настройки успешно обновлены! Перезапуск сервера uvicorn произойдет автоматически.', false);
+            } else {
+                showAlert('Ошибка сохранения: ' + (data.detail || 'Неизвестная ошибка'), true);
+            }
+        } catch (err) {
+            showAlert('Сетевая ошибка при сохранении: ' + err.message, true);
+        } finally {
+            saveSettingsBtn.disabled = false;
+            saveSettingsBtn.textContent = '💾 Сохранить конфигурацию';
+        }
+    }
+
+    async function importCsv() {
+        importCsvBtn.disabled = true;
+        importCsvBtn.textContent = 'Импорт...';
+        try {
+            const res = await fetch('/import-csv', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message, false);
+            } else {
+                showAlert('Ошибка импорта: ' + (data.detail || 'Неизвестная ошибка'), true);
+            }
+        } catch (err) {
+            showAlert('Сетевая ошибка при импорте CSV: ' + err.message, true);
+        } finally {
+            importCsvBtn.disabled = false;
+            importCsvBtn.textContent = '📥 Импортировать CSV в index';
+        }
+    }
+
+    async function updateHeaders() {
+        updateHeadersBtn.disabled = true;
+        updateHeadersBtn.textContent = 'Обновление...';
+        try {
+            const res = await fetch('/import-headers', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message, false);
+            } else {
+                showAlert('Ошибка импорта схемы: ' + (data.detail || 'Неизвестная ошибка'), true);
+            }
+        } catch (err) {
+            showAlert('Сетевая ошибка при обновлении схемы столбцов: ' + err.message, true);
+        } finally {
+            updateHeadersBtn.disabled = false;
+            updateHeadersBtn.innerHTML = '⚙️ Обновить столбцы';
+        }
+    }
+
+    async function syncToFinal() {
+        syncToFinalBtn.disabled = true;
+        syncToFinalBtn.textContent = 'Синхронизация...';
+        try {
+            const res = await fetch('/copy-index-to-final', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message, false);
+            } else {
+                showAlert('Ошибка синхронизации: ' + (data.detail || 'Неизвестная ошибка'), true);
+            }
+        } catch (err) {
+            showAlert('Сетевая ошибка при синхронизации index_final: ' + err.message, true);
+        } finally {
+            syncToFinalBtn.disabled = false;
+            syncToFinalBtn.innerHTML = '🔄 Синхронизировать в index_final';
+        }
+    }
+
+    async function syncSettingsTable() {
+        syncSettingsTableBtn.disabled = true;
+        syncSettingsTableBtn.textContent = 'Обновление...';
+        try {
+            const res = await fetch('/import-settings-schema', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message, false);
+            } else {
+                showAlert('Ошибка обновления: ' + (data.detail || 'Неизвестная ошибка'), true);
+            }
+        } catch (err) {
+            showAlert('Сетевая ошибка при обновлении настроек сопоставления: ' + err.message, true);
+        } finally {
+            syncSettingsTableBtn.disabled = false;
+            syncSettingsTableBtn.innerHTML = '🛠️ Синхронизировать настройки файлов';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadAppSettings();
+        fetchConfig();
+        saveSettingsBtn.onclick = saveAppSettings;
+        importCsvBtn.onclick = importCsv;
+        updateHeadersBtn.onclick = updateHeaders;
+        syncToFinalBtn.onclick = syncToFinal;
+        syncSettingsTableBtn.onclick = syncSettingsTable;
+    });
 </script>
 </body>
 </html>

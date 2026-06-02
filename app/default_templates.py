@@ -2,19 +2,6 @@
 
 DEFAULT_TEMPLATES = [
     {
-        "name": "Отметить назначение как финализируемое (markProcedureAssignmentAsFinishing)",
-        "method": "POST",
-        "path": "/api/v1/assignment/markProcedureAssignmentAsFinishing",
-        "payload": {
-            "resultCompositionUid": "@config:resultCompositionUid",
-            "assignmentCompositionUid": "@config:assignmentCompositionUid",
-            "updated": "@now_iso",
-            "workplaceId": "@config:workplaceId",
-            "doctorName": "@config:doctorName",
-            "doctorJob": "@config:doctorJob"
-        }
-    },
-    {
         "name": "Отменить отметку о процедуре (unmarkProcedureCancelling)",
         "method": "POST",
         "path": "/api/v1/procedure/unmarkProcedureCancelling",
@@ -95,7 +82,13 @@ DEFAULT_TEMPLATES = [
             "patientId": ["@config:patientId"],
             "ehrId": ["@config:ehrId"],
             "assignmentIds": ["@config:assignmentId"],
-            "assignmentCompositionUids": ["@config:assignmentCompositionUid"]
+            "assignmentCompositionUids": ["@config:assignmentCompositionUid"],
+            "assignmentStatuses": ["CREATED", "ASSIGNED"],
+            "assignmentName": "@config:assignmentName",
+            "dayTimePeriod": ["MORNING", "AFTERNOON"],
+            "dateFrom": "@now_iso",
+            "dateTo": "@now_iso",
+            "sorting": {"field": "planningDate", "direction": "asc"}
         }
     },
     {
@@ -122,6 +115,8 @@ DEFAULT_TEMPLATES = [
             "doctorName": "@config:doctorName",
             "doctorJob": "@config:doctorJob",
             "resultCompositionUid": "@config:resultCompositionUid",
+            "description": "@config:description",
+            "procedureDressing": "@config:procedureDressing",
             "updated": "@now_iso"
         }
     },
@@ -136,6 +131,8 @@ DEFAULT_TEMPLATES = [
             "doctorName": "@config:doctorName",
             "doctorJob": "@config:doctorJob",
             "resultCompositionUid": "@config:resultCompositionUid",
+            "description": "@config:description",
+            "procedureDressing": "@config:procedureDressing",
             "updated": "@now_iso"
         }
     },
@@ -143,6 +140,21 @@ DEFAULT_TEMPLATES = [
         "name": "Отменить процедуру (cancelProcedure)",
         "method": "POST",
         "path": "/api/v1/procedure/cancelProcedure",
+        "payload": {
+            "assignmentCompositionUid": "@config:assignmentCompositionUid",
+            "code": "@config:code",
+            "workplaceId": "@config:workplaceId",
+            "doctorName": "@config:doctorName",
+            "doctorJob": "@config:doctorJob",
+            "byExecutor": "@config:byExecutor",
+            "resultCompositionUid": "@config:resultCompositionUid",
+            "updated": "@now_iso"
+        }
+    },
+    {
+        "name": "Активировать процедуру с протоколом (activateWithProtocolProcedure)",
+        "method": "POST",
+        "path": "/api/v1/procedure/activateWithProtocolProcedure",
         "payload": {
             "assignmentCompositionUid": "@config:assignmentCompositionUid",
             "code": "@config:code",
@@ -179,9 +191,24 @@ DEFAULT_TEMPLATES = [
             "workplaceId": "@config:workplaceId",
             "doctorName": "@config:doctorName",
             "doctorJob": "@config:doctorJob",
+            "assigneeId": "@config:assigneeId",
+            "assigneeName": "@config:assigneeName",
+            "cito": "@config:cito",
             "assignmentDate": "@now_iso",
+            "updated": "@now_iso",
             "created": "@now_iso",
-            "updated": "@now_iso"
+            "effectArea": "@config:effectArea",
+            "schedule": [{
+                "code": "@config:scheduleCode",
+                "planningDate": "@now_iso",
+                "periodCode": "@config:periodCode",
+                "procedureDressing": "@config:procedureDressing",
+                "isDoctor": "@config:isDoctor",
+                "room": "@config:room",
+                "deviceId": "@config:deviceId"
+            }],
+            "procedureCount": "@config:procedureCount",
+            "pmuNaz": "@config:pmuNaz"
         }
     },
     {
@@ -232,10 +259,44 @@ DEFAULT_TEMPLATES = [
         }
     },
     {
-        "name": "Запланировать назначение (plan)",
+        "name": "Запланировать назначение (plan) - полный",
         "method": "POST",
         "path": "/api/v1/assignment/plan",
         "payload": {
+            "ehrId": "@config:ehrId",
+            "patientId": "@config:patientId",
+            "careCaseId": "@config:careCaseId",
+            "assignmentCompositionUid": "@config:assignmentCompositionUid",
+            "assignmentCode": "@config:assignmentCode",
+            "assignmentName": "@config:assignmentName",
+            "workplaceId": "@config:workplaceId",
+            "doctorName": "@config:doctorName",
+            "doctorJob": "@config:doctorJob",
+            "assigneeId": "@config:assigneeId",
+            "assigneeName": "@config:assigneeName",
+            "cito": "@config:cito",
+            "assignmentDate": "@now_iso",
+            "updated": "@now_iso",
+            "created": "@now_iso",
+            "effectArea": "@config:effectArea",
+            "schedule": [{
+                "code": "@config:scheduleCode",
+                "planningDate": "@now_iso",
+                "periodCode": "@config:periodCode",
+                "procedureDressing": "@config:procedureDressing",
+                "isDoctor": "@config:isDoctor",
+                "room": "@config:room",
+                "deviceId": "@config:deviceId"
+            }],
+            "procedureCount": "@config:procedureCount"
+        }
+    },
+    {
+        "name": "Планирование назначения (plan) с результатом",
+        "method": "POST",
+        "path": "/api/v1/assignment/plan",
+        "payload": {
+            "resultCompositionUid": "@config:resultCompositionUid",
             "assignmentCompositionUid": "@config:assignmentCompositionUid",
             "updated": "@now_iso",
             "workplaceId": "@config:workplaceId",
@@ -261,6 +322,7 @@ DEFAULT_TEMPLATES = [
         "path": "/api/v1/assignment/markAssignmentAsCancelling",
         "payload": {
             "assignmentCompositionUid": "@config:assignmentCompositionUid",
+            "byExecutor": "@config:byExecutor",
             "workplaceId": "@config:workplaceId",
             "doctorName": "@config:doctorName",
             "doctorJob": "@config:doctorJob"
@@ -273,7 +335,15 @@ DEFAULT_TEMPLATES = [
         "payload": {
             "careCaseId": "@config:careCaseId",
             "assignmentIds": ["@config:assignmentId"],
-            "assignmentCompositionUids": ["@config:assignmentCompositionUid"]
+            "assignmentCompositionUids": ["@config:assignmentCompositionUid"],
+            "doctorId": "doctor_001",
+            "doctorName": "@config:doctorName",
+            "assigneeId": "@config:assigneeId",
+            "executorId": "@config:executorId",
+            "assignmentName": "@config:assignmentName",
+            "dateFrom": "@now_iso",
+            "dateTo": "@now_iso",
+            "sorting": {"field": "assignmentDate", "direction": "asc"}
         }
     },
     {
@@ -282,7 +352,9 @@ DEFAULT_TEMPLATES = [
         "path": "/api/v1/assignment/findDuplicates",
         "payload": {
             "careCaseId": "@config:careCaseId",
-            "assignmentCode": ["@config:assignmentCode"]
+            "assignmentCode": ["@config:assignmentCode", "ANOTHER_CODE"],
+            "statuses": ["CREATED"],
+            "period": 7
         }
     },
     {
@@ -291,6 +363,8 @@ DEFAULT_TEMPLATES = [
         "path": "/api/v1/assignment/findBetween",
         "payload": {
             "patientId": "@config:patientId",
+            "ehrId": "@config:ehrId",
+            "workplaceId": "@config:workplaceId",
             "dateFrom": "@now_iso",
             "dateTo": "@now_iso"
         }
@@ -302,6 +376,7 @@ DEFAULT_TEMPLATES = [
         "payload": {
             "assignmentCompositionUid": "@config:assignmentCompositionUid",
             "updated": "@now_iso",
+            "byExecutor": "@config:byExecutor",
             "workplaceId": "@config:workplaceId",
             "doctorName": "@config:doctorName",
             "doctorJob": "@config:doctorJob"
@@ -339,6 +414,7 @@ DEFAULT_TEMPLATES = [
             "assignmentCompositionUid": "@config:assignmentCompositionUid",
             "resultCompositionUid": "@config:resultCompositionUid",
             "updated": "@now_iso",
+            "completed": "@now_iso",
             "workplaceId": "@config:workplaceId",
             "doctorName": "@config:doctorName",
             "doctorJob": "@config:doctorJob"
@@ -372,7 +448,10 @@ DEFAULT_TEMPLATES = [
         "payload": {
             "assignmentCompositionUid": "@config:assignmentCompositionUid",
             "assignmentId": "@config:assignmentId",
+            "code": "@config:code",
+            "procedureCode": "@config:procedureCode",
             "patientId": "@config:patientId",
+            "ehrId": "@config:ehrId",
             "updated": "@now_iso",
             "message_source": "fastapi_integration_service"
         }
