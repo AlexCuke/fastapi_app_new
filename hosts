@@ -1,0 +1,97 @@
+﻿# Copyright (c) 1993-2009 Microsoft Corp.
+#
+# This is a sample HOSTS file used by Microsoft TCP/IP for Windows.
+#
+# This file contains the mappings of IP addresses to host names. Each
+# entry should be kept on an individual line. The IP address should
+# be placed in the first column followed by the corresponding host name.
+# The IP address and the host name should be separated by at least one
+# space.
+#
+# Additionally, comments (such as these) may be inserted on individual
+# lines or following the machine name denoted by a '#' symbol.
+#
+# For example:
+#
+#      102.54.94.97     rhino.acme.com          # source server
+#       38.25.63.10     x.acme.com              # x client host
+
+# localhost name resolution is handled within DNS itself.
+#	127.0.0.1       localhost
+#	::1             localhost
+127.0.0.1 204-216-225-86.navisite.com
+127.0.0.1 a104-86-50-82.deploy.static.akamaitechnologies.com
+127.0.0.1 automatedqa.com
+127.0.0.1 comapi.embarcadero.com
+127.0.0.1 e017.en25.com
+127.0.0.1 ec2-52-5-26-245.compute-1.amazonaws.com
+127.0.0.1 ec2-54-236-153-48.compute-1.amazonaws.com
+127.0.0.1 embt.usertility.com
+127.0.0.1 external.ws.sanctx.embarcadero.com
+127.0.0.1 lh-in-f113.1e100.net
+127.0.0.1 lh-in-f97.1e100.net
+127.0.0.1 license.codegear.com
+127.0.0.1 license.embarcadero.com
+127.0.0.1 LicenseRenewalServicesImpl.services.server.v8.srs.sanctuary.codegear.com
+127.0.0.1 license-stage.codegear.com
+127.0.0.1 LicenseUsageServicesImpl.services.server.v8.srs.sanctuary.codegear.com
+127.0.0.1 li-in-f138.1e100.net
+127.0.0.1 li-in-f82.1e100.net
+127.0.0.1 lo-in-f82.1e100.net
+127.0.0.1 object.ws.sanctx.embarcadero.com
+127.0.0.1 RegistrationServicesImpl.services.server.v8.srs.sanctuary.codegear.com
+127.0.0.1 services.server.v8.srs.sanctuary.codegear.com
+127.0.0.1 track.embarcadero.com
+127.0.0.1 www.automatedqa.com
+127.0.0.1 a104-86-50-244.deploy.static.akamaitechnologies.com
+127.0.0.1       activate.navicat.com
+10.134.5.220 rancher.tlowk8.m34-test.dzm
+
+
+#ППАК КИС ЕМИАС ehrdb
+
+10.101.4.45    m01-ehrw-01.m01.dzm          m01-ehrw-01
+10.101.4.46   m01-ehrw-02.m01.dzm          m01-ehrw-02
+10.101.4.47    m01-ehrw-03.m01.dzm          m01-ehrw-03
+10.101.4.41   m01-ehrm-01.m01.dzm          m01-ehrm-01
+10.101.4.42    m01-ehrm-02.m01.dzm          m01-ehrm-02
+10.101.4.43    m01-ehrm-03.m01.dzm          m01-ehrm-03
+10.101.4.40    m01-ehrc-01.m01.dzm        m01-ehrc-01 rancher.ehrdb.m01.dzm api.ehrdb.m01.dzm adapter.ehrdb.m01.dzm elastic.ehrdb.m01.dzm
+10.101.4.20    m01-kissp-01.m01.dzm        m01-kissp-01	
+10.101.4.44	m01-ehrpg-01
+
+#ППАК КИС ЕМИАС thinkehr
+10.101.4.51    m01-pgkis-01.m01.dzm        m01-pgkis-01
+10.101.4.52    m01-pgkis-02.m01.dzm        m01-pgkis-02
+10.101.4.53    m01-pgkis-03.m01.dzm        m01-pgkis-03
+10.101.4.50    m01-pgkisc-01.m01.dzm      m01-pgkisc-01
+10.101.4.31    m01-tehr-01.m01.dzm          m01-tehr-01
+10.101.4.32    m01-tehr-02.m01.dzm          m01-tehr-02
+10.101.4.33    m01-tehr-03.m01.dzm          m01-tehr-03
+10.101.4.30    m01-tehrc-01.m01.dzm        m01-tehrc-01
+10.101.4.20    m01-kissp-01.m01.dzm        m01-kissp-01	
+
+#ТПАК КИС ЕМИАС
+10.101.4.63    m01-tppgkis-01.m01.dzm     m01-tppgkis-01
+10.101.4.61    m01-tptehr-01.m01.dzm       m01-tptehr-01
+10.101.4.60    m01-tpkissp-01.m01.dzm      m01-tpkissp-01  
+
+10.139.4.20    m39-kissp-01
+
+
+
+10.125.4.200 pmu-ppak.m25.dzm
+10.125.4.30 m25-ehrc-01.m25.dzm
+10.115.6.200 rancher.tlowk8.m15.dzm
+10.115.6.240 api.tpehrdb.m15.dzm
+10.115.6.200 pmu-tpak.m15.dzm
+10.115.6.200 procedure-dev.m15.dzm
+10.115.6.200 kdo-dev.m15.dzm
+10.115.6.200 operation-dev.m15.dzm
+10.115.6.200 appointment-dev.m15.dzm
+# Added by Docker Desktop
+192.168.0.49 host.docker.internal
+192.168.0.49 gateway.docker.internal
+# To allow the same kube context to work on the host and the container:
+127.0.0.1 kubernetes.docker.internal
+# End of section
