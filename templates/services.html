@@ -28,12 +28,21 @@
 
         <section class="space-y-4">
             <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🔍 Интеграция с Elasticsearch</h2>
+
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-sm">
                 <div class="max-w-xl">
                     <h3 class="text-base font-bold text-slate-800">Выгрузить индекс из ES</h3>
-                    <p class="text-sm text-slate-500 mt-1">Данные будут записаны в таблицы <code class="font-mono text-indigo-600">index</code> и <code class="font-mono text-indigo-600">index_final</code>.</p>
+                    <p class="text-sm text-slate-500 mt-1">Фоновая задача: данные будут записаны в таблицы <code class="font-mono text-indigo-600">index</code> и <code class="font-mono text-indigo-600">index_final</code>.</p>
                 </div>
-                <button id="exportElasticBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-150 text-sm">Запустить экспорт</button>
+                <button id="exportElasticBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-150 text-sm whitespace-nowrap">Запустить экспорт</button>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-sm">
+                <div class="max-w-xl">
+                    <h3 class="text-base font-bold text-slate-800">Выгрузить keys из Elasticsearch</h3>
+                    <p class="text-sm text-slate-500 mt-1">Фоновая задача: из ES извлекаются записи с полями <code class="font-mono text-indigo-600">careCase.*</code> и загружаются в таблицу <code class="font-mono text-indigo-600">keys</code>.</p>
+                </div>
+                <button id="exportToKeysBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-150 text-sm whitespace-nowrap">Выгрузить keys из ES</button>
             </div>
         </section>
 
@@ -42,9 +51,9 @@
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-sm">
                 <div class="max-w-xl">
                     <h3 class="text-base font-bold text-slate-800">Создать keys из index</h3>
-                    <p class="text-sm text-slate-500 mt-1">Генерирует таблицу <code class="font-mono text-indigo-600">keys</code> на основе текущего index.</p>
+                    <p class="text-sm text-slate-500 mt-1">Генерирует таблицу <code class="font-mono text-indigo-600">keys</code> на основе текущего index (локальная копия без обращения к ES).</p>
                 </div>
-                <button id="createKeysBtn" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold py-3 px-6 rounded-lg shadow-sm text-sm">Создать keys</button>
+                <button id="createKeysBtn" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold py-3 px-6 rounded-lg shadow-sm text-sm whitespace-nowrap">Создать keys</button>
             </div>
         </section>
     </div>
@@ -52,21 +61,59 @@
 
 <script>
     const statusAlert = document.getElementById('statusAlert');
+    const exportElasticBtn = document.getElementById('exportElasticBtn');
+    const exportToKeysBtn = document.getElementById('exportToKeysBtn');
+    const createKeysBtn = document.getElementById('createKeysBtn');
+
     function showAlert(text, isError = false) {
         statusAlert.textContent = text;
-        statusAlert.className = "px-4 py-3 rounded-lg border text-sm font-semibold block " + (isError ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200");
+        statusAlert.className = "px-4 py-3 rounded-lg border text-sm font-semibold block " +
+            (isError ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200");
         setTimeout(() => statusAlert.className = 'hidden', 6000);
     }
 
-    document.getElementById('exportElasticBtn').onclick = async () => {
-        const r = await fetch('/export', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({export_index_final: true}) });
-        if (r.ok) showAlert('Экспорт запущен');
-    };
-    document.getElementById('createKeysBtn').onclick = async () => {
-        const r = await fetch('/create_keys', { method: 'POST' });
-        const d = await r.json();
-        if (r.ok) showAlert(d.message);
-    };
+    async function callApi(url, options, btn, loadingText, defaultLabel) {
+        btn.disabled = true;
+        btn.textContent = loadingText;
+        try {
+            const res = await fetch(url, options);
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message || 'Операция выполнена успешно.', false);
+            } else {
+                showAlert('Ошибка: ' + (data.detail || 'Неизвестная ошибка'), true);
+            }
+        } catch (err) {
+            showAlert('Сетевая ошибка: ' + err.message, true);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = defaultLabel;
+        }
+    }
+
+    exportElasticBtn.onclick = () => callApi(
+        '/export',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ export_index_final: true }) },
+        exportElasticBtn,
+        'Запуск...',
+        'Запустить экспорт'
+    );
+
+    exportToKeysBtn.onclick = () => callApi(
+        '/export_to_keys',
+        { method: 'POST' },
+        exportToKeysBtn,
+        'Запуск...',
+        'Выгрузить keys из ES'
+    );
+
+    createKeysBtn.onclick = () => callApi(
+        '/create_keys',
+        { method: 'POST' },
+        createKeysBtn,
+        'Создание...',
+        'Создать keys'
+    );
 </script>
 </body>
 </html>

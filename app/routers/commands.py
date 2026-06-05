@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 import asyncpg
 from typing import List, Dict, Any
+from pydantic import ValidationError
 from app.db import get_db
-from app.models import ExecuteRequest, ExecuteResponse
+from app.models import ExecuteRequest, ExecuteResponse, get_command_model, validate_command_payload
 from app.api_client import substitute_markers, send_request_async
 from app.config import settings
 import app.db_ops as db_ops
@@ -20,7 +21,20 @@ async def get_template(command_name: str, conn: asyncpg.Connection = Depends(get
     if not record:
         raise HTTPException(status_code=404, detail="Template not found")
     import json
-    return {"template": json.loads(record['payload'])}
+    model_cls = get_command_model(command_name)
+    schema = model_cls.model_json_schema() if model_cls else None
+    return {"template": json.loads(record['payload']), "schema": schema}
+
+@router.get("/schema/{command_name}")
+async def get_command_schema(command_name: str, conn: asyncpg.Connection = Depends(get_db)):
+    """JSON Schema swagger-модели для команды (если сопоставлена)."""
+    record = await db_ops.get_template_by_name_db(conn, command_name)
+    if not record:
+        raise HTTPException(status_code=404, detail="Template not found")
+    model_cls = get_command_model(command_name)
+    if not model_cls:
+        raise HTTPException(status_code=404, detail="Schema not mapped for this command")
+    return model_cls.model_json_schema()
 
 @router.post("/resolve")
 async def resolve_markers(payload: dict, conn: asyncpg.Connection = Depends(get_db)):
@@ -54,6 +68,11 @@ async def execute_command(req: ExecuteRequest, conn: asyncpg.Connection = Depend
 
     if has_markers(resolved_payload):
         raise HTTPException(status_code=400, detail="Unresolved payload markers remain. Update settings config values.")
+
+    try:
+        resolved_payload = validate_command_payload(req.command_name, resolved_payload)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
 
     # Если метод команды равен KAFKA, публикуем данные напрямую в брокер
     if record['method'].upper() == "KAFKA":

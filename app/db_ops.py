@@ -1,6 +1,30 @@
 import json
+import csv
+import os
 from typing import Dict, List, Optional, Any
 import asyncpg
+
+SCHEMA_FILE_MAPPING = {
+    'sort.csv': 'index',
+    'sort_index.csv': 'index_final',
+    'keys.csv': 'keys',
+}
+
+
+def _read_schema_headers_from_csv(filepath: str) -> List[str]:
+    """Читает первую строку CSV-схемы (разделитель ';', BOM-safe)."""
+    with open(filepath, 'r', encoding='utf-8-sig') as f:
+        reader = csv.reader(f, delimiter=';')
+        try:
+            raw_headers = next(reader)
+        except StopIteration:
+            return []
+    clean_headers = []
+    for col in raw_headers:
+        col = col.strip().strip('\ufeff')
+        if col:
+            clean_headers.append(col)
+    return clean_headers
 
 async def init_config_table(conn: asyncpg.Connection):
     await conn.execute("""
@@ -158,7 +182,7 @@ async def refresh_status_tracker(conn: asyncpg.Connection, trigger_command: str 
                     procedure_code, procedure_status,
                     trigger_command, last_updated
                 ) VALUES ($1, $2, $3, $4, $5, $6)
-            """, assignment_id, db_assign_status, prev_assign_status, procedure_code, db_proc_status, prev_proc_status, db_updated_at)
+            """, assignment_id, db_assign_status, procedure_code, db_proc_status, trigger_command, db_updated_at)
 
 async def sync_current_assignment(conn: asyncpg.Connection):
     """Синхронизирует строки по assignmentCompositionUid в таблицы current_assignment и currrent_assignment."""
@@ -322,38 +346,47 @@ async def get_template_by_name_db(conn: asyncpg.Connection, name: str) -> Option
 
 async def load_headers_to_table_async(conn: asyncpg.Connection) -> int:
     """Асинхронно считывает заголовки из csv-файлов схемы и импортирует их в sort_headers."""
-    import csv, os
-    file_mapping = {
-        'sort.csv': 'index',
-        'sort_index.csv': 'index_final',
-        'keys.csv': 'keys'
-    }
     table_name = 'sort_headers'
-    
+
     await conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} (filename TEXT, header TEXT)")
     await conn.execute(f"DELETE FROM {table_name}")
-    
+
     inserted = 0
-    for filepath, new_name in file_mapping.items():
+    for filepath, new_name in SCHEMA_FILE_MAPPING.items():
         if not os.path.exists(filepath):
             continue
-        with open(filepath, 'r', encoding='utf-8-sig') as f:
-            reader = csv.reader(f, delimiter=';')
-            try:
-                raw_headers = next(reader)
-            except StopIteration:
-                continue
-            
-            clean_headers = []
-            for col in raw_headers:
-                col = col.strip().strip('\\ufeff')
-                if col:
-                    clean_headers.append(col)
-                    
-            for header in clean_headers:
-                await conn.execute(
-                    f"INSERT INTO {table_name} (filename, header) VALUES ($1, $2)", 
-                    new_name, header
-                )
-                inserted += 1
+        clean_headers = _read_schema_headers_from_csv(filepath)
+        if not clean_headers:
+            continue
+        for header in clean_headers:
+            await conn.execute(
+                f"INSERT INTO {table_name} (filename, header) VALUES ($1, $2)",
+                new_name, header
+            )
+            inserted += 1
+    return inserted
+
+
+async def init_settings_schema_table_async(conn: asyncpg.Connection) -> int:
+    """Создаёт таблицу settings и заполняет её заголовками из CSV-схем."""
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS settings (
+            filename TEXT PRIMARY KEY,
+            headers TEXT NOT NULL
+        )
+    """)
+    await conn.execute("DELETE FROM settings")
+
+    inserted = 0
+    for filepath, _ in SCHEMA_FILE_MAPPING.items():
+        if not os.path.exists(filepath):
+            continue
+        clean_headers = _read_schema_headers_from_csv(filepath)
+        if not clean_headers:
+            continue
+        await conn.execute(
+            "INSERT INTO settings (filename, headers) VALUES ($1, $2)",
+            filepath, ';'.join(clean_headers)
+        )
+        inserted += 1
     return inserted
