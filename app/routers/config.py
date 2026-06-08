@@ -197,3 +197,32 @@ async def update_app_settings(new_settings: dict):
         raise HTTPException(status_code=500, detail=f"Не удалось перезаписать .env: {str(e)}")
 
     return {"message": "Настройки успешно сохранены."}
+
+@router.delete("/{key}")
+async def delete_config(
+    key: str,
+    conn: asyncpg.Connection = Depends(get_db)
+):
+    """Удаляет параметр конфигурации по ключу."""
+    result = await conn.execute("DELETE FROM config WHERE key = $1", key)
+    if result == "DELETE 0":
+        raise HTTPException(status_code=404, detail=f"Key '{key}' not found")
+    return {"key": key, "deleted": True}
+
+
+# Добавить в app/routers/config.py
+
+@router.delete("/sort-headers/{filename}/{header}")
+async def delete_sort_header(
+    filename: str,
+    header: str,
+    conn: asyncpg.Connection = Depends(get_db)
+):
+    """Удаляет запись из sort_headers по filename и header."""
+    result = await conn.execute(
+        "DELETE FROM sort_headers WHERE filename = $1 AND header = $2",
+        filename, header
+    )
+    if result == "DELETE 0":
+        raise HTTPException(status_code=404, detail="Запись не найдена")
+    return {"filename": filename, "header": header, "deleted": True}

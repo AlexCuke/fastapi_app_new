@@ -10,7 +10,7 @@ SCHEMA_FILE_MAPPING = {
     'keys.csv': 'keys',
 }
 
-
+#чтение первой строки из CSV для получения заголовков, с учетом возможного BOM и лишних пробелов
 def _read_schema_headers_from_csv(filepath: str) -> List[str]:
     """Читает первую строку CSV-схемы (разделитель ';', BOM-safe)."""
     with open(filepath, 'r', encoding='utf-8-sig') as f:
@@ -26,7 +26,7 @@ def _read_schema_headers_from_csv(filepath: str) -> List[str]:
             clean_headers.append(col)
     return clean_headers
 
-
+#аССинхронные функции для работы с базой данных, включая инициализацию таблиц, загрузку CSV, синхронизацию данных и управление шаблонами запросов
 async def init_config_table(conn: asyncpg.Connection):
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS config (

@@ -1,0 +1,271 @@
+<!-- templates/config_params.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Параметры конфигурации БД — API Integration Service</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6 selection:bg-indigo-500 selection:text-white">
+<div class="max-w-[1200px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+    
+    <!-- HEADER -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">⚙️</span>
+            <div>
+                <h1 class="text-xl font-bold text-slate-950">Параметры конфигурации БД</h1>
+                <p class="text-xs text-slate-500">Управление ключами и значениями для подстановки маркеров (@config:...)</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <a href="/settings" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+                <span>⬅️</span> Назад к настройкам
+            </a>
+            <a href="/" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm">
+                🏠 На главную
+            </a>
+        </div>
+    </header>
+
+    <div class="p-6 space-y-6">
+        <div id="statusAlert" class="hidden px-4 py-3 rounded-lg border text-sm font-semibold"></div>
+
+        <!-- Основной блок параметров конфигурации -->
+        <section class="space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🔑 Список параметров</h2>
+                    <p class="text-xs text-slate-500 mt-1">
+                        Эти параметры используются для подстановки значений вместо маркеров 
+                        <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">@config:ключ</code> в шаблонах команд.
+                    </p>
+                </div>
+                <button id="addConfigBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-1">
+                    <span>➕</span> Добавить параметр
+                </button>
+            </div>
+
+            <!-- Форма добавления нового параметра (скрыта по умолчанию) -->
+            <div id="addConfigForm" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <h3 class="text-sm font-semibold text-slate-700 mb-3">Новый параметр</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="text" id="newConfigKey" placeholder="Ключ (например: procedureCode)" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <input type="text" id="newConfigValue" placeholder="Значение" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <input type="text" id="newConfigGroup" placeholder="Группа (по умолчанию: default)" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button id="submitNewConfigBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg text-sm">Сохранить</button>
+                    <button id="cancelAddConfigBtn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg text-sm">Отмена</button>
+                </div>
+            </div>
+
+            <!-- Таблица параметров -->
+            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Ключ</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Значение</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Группа</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="configTableBody" class="divide-y divide-slate-100 bg-white">
+                            <tr>
+                                <td colspan="4" class="px-4 py-8 text-center text-slate-400 text-sm">Загрузка параметров...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <p class="text-xs text-slate-400 text-center">
+                💡 Подсказка: В payload команд используйте <code class="font-mono">@config:ключ</code> для подстановки значения.
+            </p>
+        </section>
+    </div>
+</div>
+
+<script>
+    const statusAlert = document.getElementById('statusAlert');
+    const configTableBody = document.getElementById('configTableBody');
+    const addConfigBtn = document.getElementById('addConfigBtn');
+    const addConfigForm = document.getElementById('addConfigForm');
+    const submitNewConfigBtn = document.getElementById('submitNewConfigBtn');
+    const cancelAddConfigBtn = document.getElementById('cancelAddConfigBtn');
+    const newConfigKey = document.getElementById('newConfigKey');
+    const newConfigValue = document.getElementById('newConfigValue');
+    const newConfigGroup = document.getElementById('newConfigGroup');
+
+    function showAlert(text, isError = false) {
+        statusAlert.textContent = text;
+        statusAlert.className = "px-4 py-3 rounded-lg border text-sm font-semibold block " +
+            (isError ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200");
+        setTimeout(() => statusAlert.className = 'hidden', 5000);
+    }
+
+    async function loadConfigItems() {
+        try {
+            const response = await fetch('/config/items');
+            const items = await response.json();
+            
+            if (items.length === 0) {
+                configTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-slate-400 text-sm">
+                            Нет параметров конфигурации. Нажмите «Добавить параметр» для создания.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            configTableBody.innerHTML = items.map(item => `
+                <tr data-key="${escapeHtml(item.key)}">
+                    <td class="px-4 py-3 text-sm font-mono text-slate-700">${escapeHtml(item.key)}</td>
+                    <td class="px-4 py-3">
+                        <input type="text" 
+                               id="value-${escapeHtml(item.key)}" 
+                               value="${escapeHtml(item.value)}" 
+                               class="w-full bg-white border border-slate-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="text" 
+                               id="group-${escapeHtml(item.key)}" 
+                               value="${escapeHtml(item.group_name || 'default')}" 
+                               class="w-full bg-white border border-slate-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                    </td>
+                    <td class="px-4 py-3 text-right space-x-2">
+                        <button onclick="saveConfig('${escapeHtml(item.key)}')" 
+                                class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">💾 Сохранить</button>
+                        <button onclick="deleteConfig('${escapeHtml(item.key)}')" 
+                                class="text-red-600 hover:text-red-800 text-sm font-medium">🗑️ Удалить</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            console.error('Ошибка загрузки параметров:', err);
+            configTableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-red-500 text-sm">
+                        Ошибка загрузки: ${err.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    window.saveConfig = async function(key) {
+        const valueInput = document.getElementById(`value-${key}`);
+        const groupInput = document.getElementById(`group-${key}`);
+        
+        if (!valueInput) return;
+        
+        const value = valueInput.value;
+        const group = groupInput?.value || 'default';
+        
+        try {
+            const response = await fetch(`/config/${encodeURIComponent(key)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value: value, group_name: group })
+            });
+            
+            if (response.ok) {
+                showAlert(`Параметр "${key}" успешно сохранён`, false);
+            } else {
+                const error = await response.json();
+                showAlert(`Ошибка сохранения: ${error.detail || response.statusText}`, true);
+            }
+        } catch (err) {
+            showAlert(`Ошибка: ${err.message}`, true);
+        }
+    };
+
+    window.deleteConfig = async function(key) {
+        if (!confirm(`Удалить параметр "${key}"? Это действие нельзя отменить.`)) return;
+        
+        try {
+            const response = await fetch(`/config/${encodeURIComponent(key)}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                showAlert(`Параметр "${key}" удалён`, false);
+                loadConfigItems();
+            } else {
+                const error = await response.json();
+                showAlert(`Ошибка удаления: ${error.detail || response.statusText}`, true);
+            }
+        } catch (err) {
+            showAlert(`Ошибка: ${err.message}`, true);
+        }
+    };
+
+    async function addNewConfig() {
+        const key = newConfigKey.value.trim();
+        const value = newConfigValue.value.trim();
+        const group = newConfigGroup.value.trim() || 'default';
+        
+        if (!key) {
+            showAlert('Введите ключ параметра', true);
+            return;
+        }
+        if (!value) {
+            showAlert('Введите значение параметра', true);
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/config/${encodeURIComponent(key)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value: value, group_name: group })
+            });
+            
+            if (response.ok) {
+                showAlert(`Параметр "${key}" добавлен`, false);
+                newConfigKey.value = '';
+                newConfigValue.value = '';
+                newConfigGroup.value = '';
+                addConfigForm.classList.add('hidden');
+                loadConfigItems();
+            } else {
+                const error = await response.json();
+                showAlert(`Ошибка добавления: ${error.detail || response.statusText}`, true);
+            }
+        } catch (err) {
+            showAlert(`Ошибка: ${err.message}`, true);
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    addConfigBtn.addEventListener('click', () => {
+        addConfigForm.classList.toggle('hidden');
+        if (!addConfigForm.classList.contains('hidden')) {
+            newConfigKey.focus();
+        }
+    });
+    cancelAddConfigBtn.addEventListener('click', () => {
+        addConfigForm.classList.add('hidden');
+        newConfigKey.value = '';
+        newConfigValue.value = '';
+        newConfigGroup.value = '';
+    });
+    submitNewConfigBtn.addEventListener('click', addNewConfig);
+    
+    document.addEventListener('DOMContentLoaded', loadConfigItems);
+</script>
+</body>
+</html>

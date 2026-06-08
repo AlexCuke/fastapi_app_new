@@ -11,6 +11,7 @@ import app.db_ops as db_ops
 
 router = APIRouter(tags=["Integration Commands"])
 
+# Обновление шаблона команды
 class TemplateUpdate(BaseModel):
     name: str
     method: str
@@ -32,6 +33,7 @@ async def list_commands(conn: asyncpg.Connection = Depends(get_db)):
         ]
     }
 
+# Список шаблонов команд с деталями
 @router.get("/commands/templates")
 async def list_templates(conn: asyncpg.Connection = Depends(get_db)):
     records = await db_ops.get_all_templates_db(conn)
@@ -163,3 +165,34 @@ async def execute_command(req: ExecuteRequest, conn: asyncpg.Connection = Depend
         request_payload=resolved_payload,
         error=err
     )
+
+
+# Добавить в app/routers/commands.py после существующих эндпоинтов
+
+@router.post("/template")
+async def create_template(
+    payload: TemplateUpdate,
+    conn: asyncpg.Connection = Depends(get_db)
+):
+    """Создаёт новый шаблон команды."""
+    template_payload = payload.payload
+    if isinstance(template_payload, str):
+        try:
+            template_payload = json.loads(template_payload)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Payload должен быть корректным JSON-объектом")
+    
+    if not isinstance(template_payload, dict):
+        raise HTTPException(status_code=400, detail="Payload должен быть JSON-объектом")
+    
+    try:
+        result = await conn.execute(
+            """INSERT INTO request_templates (name, method, path, payload, group_name) 
+               VALUES ($1, $2, $3, $4, $5)""",
+            payload.name, payload.method, payload.path, json.dumps(template_payload), payload.group_name or 'default'
+        )
+        return {"created": True, "name": payload.name}
+    except Exception as e:
+        if "unique constraint" in str(e).lower():
+            raise HTTPException(status_code=409, detail=f"Шаблон с именем '{payload.name}' уже существует")
+        raise HTTPException(status_code=500, detail=str(e))

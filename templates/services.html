@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6 selection:bg-indigo-500 selection:text-white">
-<div class="max-w-[1000px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+<div class="max-w-[1200px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
     
     <!-- HEADER -->
     <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center gap-4">
@@ -15,7 +15,7 @@
             <span class="text-2xl">🚀</span>
             <div>
                 <h1 class="text-xl font-bold text-slate-950">Сервисные функции</h1>
-                <p class="text-xs text-slate-500">Управление индексами и экспортом</p>
+                <p class="text-xs text-slate-500">Управление индексами, импорт, синхронизация</p>
             </div>
         </div>
         <a href="/" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm">
@@ -26,13 +26,14 @@
     <div class="p-6 space-y-6">
         <div id="statusAlert" class="hidden px-4 py-3 rounded-lg border text-sm font-semibold"></div>
 
+        <!-- Elasticsearch раздел (оставлен как был) -->
         <section class="space-y-4">
             <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🔍 Интеграция с Elasticsearch</h2>
 
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-sm">
                 <div class="max-w-xl">
                     <h3 class="text-base font-bold text-slate-800">Выгрузить индекс из ES</h3>
-                    <p class="text-sm text-slate-500 mt-1">Фоновая задача: данные будут записаны в таблицы <code class="font-mono text-indigo-600">index</code> и <code class="font-mono text-indigo-600">index_final</code>.</p>
+                    <p class="text-sm text-slate-500 mt-1">Фоновая задача: данные будут записаны в таблицы <code class="font-mono text-indigo-600">elastic_index</code> и <code class="font-mono text-indigo-600">index_final</code>.</p>
                 </div>
                 <button id="exportElasticBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-150 text-sm whitespace-nowrap">Запустить экспорт</button>
             </div>
@@ -46,6 +47,7 @@
             </div>
         </section>
 
+        <!-- Структура БД (оставлен) -->
         <section class="space-y-4">
             <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🗄️ Структура БД</h2>
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-sm">
@@ -56,14 +58,69 @@
                 <button id="createKeysBtn" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold py-3 px-6 rounded-lg shadow-sm text-sm whitespace-nowrap">Создать keys</button>
             </div>
         </section>
+
+        <!-- НОВЫЙ РАЗДЕЛ: Сервисные опции (перенесены из settings.html) -->
+        <section class="space-y-4">
+            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🛠️ Сервисные опции (импорт / синхронизация)</h2>
+
+            <!-- Импорт CSV -->
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">Импорт локального CSV в базу данных</h3>
+                    <p class="text-xs text-slate-500 mt-1">Очищает текущую таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">elastic_index</code> и импортирует туда данные из файла, указанного в <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">OUTPUT_CSV</code>.</p>
+                </div>
+                <button id="importCsvBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm text-sm whitespace-nowrap">
+                    📥 Импортировать CSV в elastic_index
+                </button>
+            </div>
+
+            <!-- Обновить схему столбцов (sort_headers) -->
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">Обновить схему столбцов</h3>
+                    <p class="text-xs text-slate-500 mt-1">Разбирает файлы <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort.csv</code> и <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort_index.csv</code> и заполняет таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort_headers</code>.</p>
+                </div>
+                <button id="updateHeadersBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm text-sm whitespace-nowrap">
+                    ⚙️ Обновить столбцы
+                </button>
+            </div>
+
+            <!-- Перенос данных из index в index_final -->
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">Перенос данных из elastic_index в index_final</h3>
+                    <p class="text-xs text-slate-500 mt-1">Очищает <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">index_final</code> и копирует данные из <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">elastic_index</code> с выравниванием по схеме <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort_headers</code>.</p>
+                </div>
+                <button id="syncToFinalBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm text-sm whitespace-nowrap">
+                    🔄 Синхронизировать в index_final
+                </button>
+            </div>
+
+            <!-- Обновить таблицу настроек сопоставления (settings) -->
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">Обновить таблицу настроек сопоставления (settings)</h3>
+                    <p class="text-xs text-slate-500 mt-1">Создаёт таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">settings</code> с именами файлов схем и списками заголовков.</p>
+                </div>
+                <button id="syncSettingsTableBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm text-sm whitespace-nowrap">
+                    🛠️ Синхронизировать настройки файлов
+                </button>
+            </div>
+        </section>
     </div>
 </div>
 
 <script>
     const statusAlert = document.getElementById('statusAlert');
+    // Кнопки из Elasticsearch-раздела
     const exportElasticBtn = document.getElementById('exportElasticBtn');
     const exportToKeysBtn = document.getElementById('exportToKeysBtn');
     const createKeysBtn = document.getElementById('createKeysBtn');
+    // Кнопки из перенесённого блока
+    const importCsvBtn = document.getElementById('importCsvBtn');
+    const updateHeadersBtn = document.getElementById('updateHeadersBtn');
+    const syncToFinalBtn = document.getElementById('syncToFinalBtn');
+    const syncSettingsTableBtn = document.getElementById('syncSettingsTableBtn');
 
     function showAlert(text, isError = false) {
         statusAlert.textContent = text;
@@ -91,29 +148,72 @@
         }
     }
 
-    exportElasticBtn.onclick = () => callApi(
-        '/export',
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ export_index_final: true }) },
-        exportElasticBtn,
-        'Запуск...',
-        'Запустить экспорт'
-    );
+    // Обработчики для существующих кнопок (Elasticsearch + keys)
+    if (exportElasticBtn) {
+        exportElasticBtn.onclick = () => callApi(
+            '/export',
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ export_index_final: true }) },
+            exportElasticBtn,
+            'Запуск...',
+            'Запустить экспорт'
+        );
+    }
+    if (exportToKeysBtn) {
+        exportToKeysBtn.onclick = () => callApi(
+            '/export_to_keys',
+            { method: 'POST' },
+            exportToKeysBtn,
+            'Запуск...',
+            'Выгрузить keys из ES'
+        );
+    }
+    if (createKeysBtn) {
+        createKeysBtn.onclick = () => callApi(
+            '/create_keys',
+            { method: 'POST' },
+            createKeysBtn,
+            'Создание...',
+            'Создать keys'
+        );
+    }
 
-    exportToKeysBtn.onclick = () => callApi(
-        '/export_to_keys',
-        { method: 'POST' },
-        exportToKeysBtn,
-        'Запуск...',
-        'Выгрузить keys из ES'
-    );
-
-    createKeysBtn.onclick = () => callApi(
-        '/create_keys',
-        { method: 'POST' },
-        createKeysBtn,
-        'Создание...',
-        'Создать keys'
-    );
+    // Обработчики для новых кнопок (перенесённые сервисные опции)
+    if (importCsvBtn) {
+        importCsvBtn.onclick = () => callApi(
+            '/import-csv',
+            { method: 'POST' },
+            importCsvBtn,
+            'Импорт...',
+            '📥 Импортировать CSV в elastic_index'
+        );
+    }
+    if (updateHeadersBtn) {
+        updateHeadersBtn.onclick = () => callApi(
+            '/import-headers',
+            { method: 'POST' },
+            updateHeadersBtn,
+            'Обновление...',
+            '⚙️ Обновить столбцы'
+        );
+    }
+    if (syncToFinalBtn) {
+        syncToFinalBtn.onclick = () => callApi(
+            '/copy-index-to-final',
+            { method: 'POST' },
+            syncToFinalBtn,
+            'Синхронизация...',
+            '🔄 Синхронизировать в index_final'
+        );
+    }
+    if (syncSettingsTableBtn) {
+        syncSettingsTableBtn.onclick = () => callApi(
+            '/import-settings-schema',
+            { method: 'POST' },
+            syncSettingsTableBtn,
+            'Обновление...',
+            '🛠️ Синхронизировать настройки файлов'
+        );
+    }
 </script>
 </body>
 </html>

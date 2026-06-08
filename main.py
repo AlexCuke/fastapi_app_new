@@ -26,10 +26,12 @@ app.include_router(export.router)
 async def web_interface(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 
+#Настройки
 @app.get("/settings", response_class=HTMLResponse, include_in_schema=False)
 async def settings_interface(request: Request):
     return templates.TemplateResponse(request=request, name="settings.html")
 
+#Индекс 
 @app.get("/index-db", response_class=HTMLResponse, include_in_schema=False)
 async def index_db_interface(request: Request):
     columns = []
@@ -49,6 +51,7 @@ async def index_db_interface(request: Request):
             name_map = {}
     return templates.TemplateResponse(request=request, name="index_db.html", context={"request": request, "columns": columns, "rows": rows, "error": error, "name_map": name_map})
 
+#Текущий пациент
 @app.get("/current-patient", response_class=HTMLResponse, include_in_schema=False)
 async def current_patient_interface(request: Request):
     columns = []
@@ -87,14 +90,17 @@ async def current_patient_interface(request: Request):
             name_map = {}
     return templates.TemplateResponse(request=request, name="current_patient.html", context={"request": request, "columns": columns, "rows": rows, "error": error, "name_map": name_map, "variables": variables})
 
+#Комманды
 @app.get("/commands-page", response_class=HTMLResponse, include_in_schema=False)
 async def commands_interface(request: Request):
     return templates.TemplateResponse(request=request, name="commands.html")
 
+#Сервисы
 @app.get("/services", response_class=HTMLResponse, include_in_schema=False)
 async def services_interface(request: Request):
     return templates.TemplateResponse(request=request, name="services.html")
 
+#Укороченный индекс
 @app.get("/api/index_final", response_class=JSONResponse, include_in_schema=False)
 async def api_index_final():
     async with db_manager.pool.acquire() as conn:
@@ -105,10 +111,12 @@ async def api_index_final():
         except Exception as e:
             return {"error": str(e), "data": []}
 
+#Помощь
 @app.get("/help", response_class=HTMLResponse, include_in_schema=False)
 async def help_interface(request: Request):
     return templates.TemplateResponse(request=request, name="help.html")
 
+#Для фронта на яваскрипт
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
@@ -118,3 +126,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/config-params", response_class=HTMLResponse, include_in_schema=False)
+async def config_params_interface(request: Request):
+    """Страница управления параметрами конфигурации БД."""
+    return templates.TemplateResponse(request=request, name="config_params.html")
+
+@app.get("/database", response_class=HTMLResponse, include_in_schema=False)
+async def database_manager_interface(request: Request):
+    """Страница управления базами данных (config, request_templates, sort_headers)."""
+    return templates.TemplateResponse(request=request, name="database_manager.html")

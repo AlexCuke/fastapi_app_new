@@ -114,6 +114,10 @@ DEFAULT_CONFIG = {
 async def init_db():
     """Инициализация базы данных: создание таблиц и начальных данных."""
     try:
+
+        print("🏃 Подключаюсь к БД..." )
+        print(f"🏃 Подключаюсь к PostgreSQL {settings.DB_HOST}:{settings.DB_PORT}...")
+        print(f"логин пароль {settings.DB_USER}:{settings.DB_PASSWORD}")
         # Подключение к БД
         conn = await asyncpg.connect(
             host=settings.DB_HOST,

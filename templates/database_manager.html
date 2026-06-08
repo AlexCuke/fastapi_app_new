@@ -1,0 +1,796 @@
+<!-- templates/database_manager.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление БД — API Integration Service</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-content {
+            transition: all 0.2s ease;
+        }
+        .loading-spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #4f46e5;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal {
+            transition: opacity 0.2s ease;
+        }
+        .json-editor {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6 selection:bg-indigo-500 selection:text-white">
+<div class="max-w-[1600px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+    
+    <!-- HEADER -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">🗄️</span>
+            <div>
+                <h1 class="text-xl font-bold text-slate-950">Управление базой данных</h1>
+                <p class="text-xs text-slate-500">Редактирование таблиц config, request_templates и sort_headers</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <a href="/settings" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+                <span>⬅️</span> Настройки
+            </a>
+            <a href="/" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm">
+                🏠 На главную
+            </a>
+        </div>
+    </header>
+
+    <div class="p-6 space-y-6">
+        <div id="statusAlert" class="hidden px-4 py-3 rounded-lg border text-sm font-semibold"></div>
+
+        <!-- Выпадающий список для выбора таблицы -->
+        <section class="space-y-4">
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Выберите таблицу для управления:</label>
+                <select id="tableSelect" class="w-full md:w-96 bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <option value="config">🔑 1. Переменные (таблица config)</option>
+                    <option value="templates">📋 2. Команды (таблица request_templates)</option>
+                    <option value="headers">📊 3. Столбцы (таблица sort_headers)</option>
+                </select>
+                <p class="text-xs text-slate-400 mt-2">
+                    💡 Редактируйте значения прямо в таблице. Изменения сохраняются по кнопке "Сохранить" в каждой строке.
+                </p>
+            </div>
+        </section>
+
+        <!-- Контейнер для динамического содержимого -->
+        <div id="contentContainer" class="min-h-[500px]">
+            <div class="text-center py-12">
+                <div class="loading-spinner mx-auto"></div>
+                <p class="text-slate-500 mt-3 text-sm">Загрузка данных...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления новой строки -->
+<div id="addModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+            <h3 id="modalTitle" class="text-lg font-bold text-slate-900">Добавить новую запись</h3>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+        </div>
+        <div id="modalBody" class="p-6">
+            <!-- Динамическое содержимое модального окна -->
+        </div>
+        <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
+            <button onclick="closeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg transition">Отмена</button>
+            <button id="modalSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition">Добавить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const statusAlert = document.getElementById('statusAlert');
+    const tableSelect = document.getElementById('tableSelect');
+    const contentContainer = document.getElementById('contentContainer');
+    const addModal = document.getElementById('addModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const modalSubmitBtn = document.getElementById('modalSubmitBtn');
+    
+    let currentTable = 'config';
+    let modalCallback = null;
+
+    function showAlert(text, isError = false) {
+        statusAlert.textContent = text;
+        statusAlert.className = "px-4 py-3 rounded-lg border text-sm font-semibold block " +
+            (isError ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200");
+        setTimeout(() => statusAlert.className = 'hidden', 5000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function openModal(title, bodyHtml, onSubmit) {
+        modalTitle.textContent = title;
+        modalBody.innerHTML = bodyHtml;
+        modalCallback = onSubmit;
+        addModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        addModal.classList.add('hidden');
+        modalCallback = null;
+        document.body.style.overflow = '';
+    }
+
+    modalSubmitBtn.onclick = () => {
+        if (modalCallback) modalCallback();
+    };
+
+    // Закрытие модального окна при клике вне его
+    addModal.addEventListener('click', (e) => {
+        if (e.target === addModal) closeModal();
+    });
+
+    // ==================== ЗАГРУЗКА ДАННЫХ ====================
+    
+    async function loadConfigTable() {
+        try {
+            const response = await fetch('/config/items');
+            const items = await response.json();
+            
+            let html = `
+                <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <div class="bg-indigo-50 px-4 py-3 border-b border-indigo-200 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-sm font-bold text-indigo-800">🔑 Переменные конфигурации (config)</h3>
+                            <p class="text-xs text-indigo-600 mt-1">Используются для подстановки маркеров @config:ключ в командах</p>
+                        </div>
+                        <button onclick="showAddConfigModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1">
+                            <span>➕</span> Добавить
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Ключ</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Значение</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Группа</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+            `;
+            
+            if (items && items.length > 0) {
+                items.forEach(item => {
+                    html += `
+                        <tr id="config-row-${escapeHtml(item.key)}">
+                            <td class="px-4 py-3 text-sm font-mono text-slate-700">${escapeHtml(item.key)}</td>
+                            <td class="px-4 py-3">
+                                <input type="text" id="config-value-${escapeHtml(item.key)}" value="${escapeHtml(item.value)}" 
+                                       class="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            </td>
+                            <td class="px-4 py-3">
+                                <input type="text" id="config-group-${escapeHtml(item.key)}" value="${escapeHtml(item.group_name || 'default')}" 
+                                       class="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                             </td>
+                            <td class="px-4 py-3 text-right space-x-2">
+                                <button onclick="saveConfig('${escapeHtml(item.key)}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-semibold transition">💾 Сохранить</button>
+                                <button onclick="deleteConfig('${escapeHtml(item.key)}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs font-semibold transition">🗑️ Удалить</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html += `
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-slate-400 text-sm">Нет параметров конфигурации</td>
+                    </tr>
+                `;
+            }
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            contentContainer.innerHTML = html;
+        } catch (err) {
+            console.error('Ошибка загрузки config:', err);
+            contentContainer.innerHTML = `<div class="text-center py-8 text-red-500">Ошибка загрузки: ${err.message}</div>`;
+        }
+    }
+    
+    async function loadTemplatesTable() {
+        try {
+            const response = await fetch('/commands/templates');
+            const data = await response.json();
+            const templates = data.templates || [];
+            
+            let html = `
+                <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <div class="bg-indigo-50 px-4 py-3 border-b border-indigo-200 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-sm font-bold text-indigo-800">📋 Шаблоны команд (request_templates)</h3>
+                            <p class="text-xs text-indigo-600 mt-1">Редактирование заголовков, методов, путей и payload</p>
+                        </div>
+                        <button onclick="showAddTemplateModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1">
+                            <span>➕</span> Добавить
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto max-h-[70vh] overflow-y-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50 sticky top-0">
+                                <tr>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase">ID</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Название</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Метод</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Путь</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Группа</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Payload (JSON)</th>
+                                    <th class="px-3 py-2 text-right text-xs font-semibold text-slate-600 uppercase">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+            `;
+            
+            if (templates.length > 0) {
+                templates.forEach(tmpl => {
+                    const payloadStr = JSON.stringify(tmpl.payload, null, 2);
+                    html += `
+                        <tr id="template-row-${tmpl.id}">
+                            <td class="px-3 py-2 text-xs font-mono text-slate-500">${tmpl.id}</td>
+                            <td class="px-3 py-2">
+                                <input type="text" id="template-name-${tmpl.id}" value="${escapeHtml(tmpl.name)}" 
+                                       class="w-48 bg-white border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                             </td>
+                            <td class="px-3 py-2">
+                                <select id="template-method-${tmpl.id}" class="bg-white border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                    <option value="POST" ${tmpl.method === 'POST' ? 'selected' : ''}>POST</option>
+                                    <option value="GET" ${tmpl.method === 'GET' ? 'selected' : ''}>GET</option>
+                                    <option value="PUT" ${tmpl.method === 'PUT' ? 'selected' : ''}>PUT</option>
+                                    <option value="DELETE" ${tmpl.method === 'DELETE' ? 'selected' : ''}>DELETE</option>
+                                </select>
+                             </td>
+                            <td class="px-3 py-2">
+                                <input type="text" id="template-path-${tmpl.id}" value="${escapeHtml(tmpl.path)}" 
+                                       class="w-64 bg-white border border-slate-200 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                             </td>
+                            <td class="px-3 py-2">
+                                <input type="text" id="template-group-${tmpl.id}" value="${escapeHtml(tmpl.group_name || 'default')}" 
+                                       class="w-32 bg-white border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                             </td>
+                            <td class="px-3 py-2">
+                                <textarea id="template-payload-${tmpl.id}" rows="2" 
+                                          class="w-96 bg-white border border-slate-200 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-vertical">${escapeHtml(payloadStr)}</textarea>
+                             </td>
+                            <td class="px-3 py-2 text-right space-x-1">
+                                <button onclick="saveTemplate(${tmpl.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs font-semibold transition">💾 Сохранить</button>
+                                <button onclick="deleteTemplate(${tmpl.id})" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-semibold transition">🗑️ Удалить</button>
+                             </td>
+                         </tr>
+                    `;
+                });
+            } else {
+                html += `
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-slate-400 text-sm">Нет шаблонов команд</td>
+                    </tr>
+                `;
+            }
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            contentContainer.innerHTML = html;
+        } catch (err) {
+            console.error('Ошибка загрузки шаблонов:', err);
+            contentContainer.innerHTML = `<div class="text-center py-8 text-red-500">Ошибка загрузки: ${err.message}</div>`;
+        }
+    }
+    
+    async function loadHeadersTable() {
+        try {
+            const response = await fetch('/config/sort-headers');
+            const headers = await response.json();
+            
+            // Группировка по filename
+            const grouped = {};
+            if (headers && headers.length > 0) {
+                headers.forEach(item => {
+                    if (!grouped[item.filename]) grouped[item.filename] = [];
+                    grouped[item.filename].push(item);
+                });
+            }
+            
+            let html = `
+                <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <div class="bg-indigo-50 px-4 py-3 border-b border-indigo-200 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-sm font-bold text-indigo-800">📊 Схема столбцов (sort_headers)</h3>
+                            <p class="text-xs text-indigo-600 mt-1">Управление отображаемыми именами заголовков для таблиц</p>
+                        </div>
+                        <button onclick="showAddHeaderModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1">
+                            <span>➕</span> Добавить
+                        </button>
+                    </div>
+            `;
+            
+            if (Object.keys(grouped).length === 0) {
+                html += `
+                    <div class="p-8 text-center text-slate-400 text-sm">
+                        Нет данных в sort_headers
+                    </div>
+                `;
+            } else {
+                for (const [filename, items] of Object.entries(grouped)) {
+                    html += `
+                        <div class="border-b border-slate-200">
+                            <div class="bg-slate-50 px-4 py-2 flex justify-between items-center">
+                                <h4 class="text-sm font-semibold text-slate-700">📁 ${escapeHtml(filename)}</h4>
+                                <button onclick="showAddHeaderModal('${escapeHtml(filename)}')" class="text-emerald-600 hover:text-emerald-700 text-xs font-semibold">+ Добавить в эту группу</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-slate-200">
+                                    <thead class="bg-slate-100">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Заголовок (header)</th>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Отображаемое имя (name)</th>
+                                            <th class="px-4 py-2 text-right text-xs font-semibold text-slate-600 uppercase">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 bg-white">
+                    `;
+                    
+                    items.forEach(item => {
+                        html += `
+                            <tr id="header-row-${escapeHtml(filename)}-${escapeHtml(item.header)}">
+                                <td class="px-4 py-2 text-sm font-mono text-slate-600">${escapeHtml(item.header)}</td>
+                                <td class="px-4 py-2">
+                                    <input type="text" id="header-name-${escapeHtml(filename)}-${escapeHtml(item.header)}" value="${escapeHtml(item.name || '')}" 
+                                           class="w-80 bg-white border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                 </td>
+                                <td class="px-4 py-2 text-right space-x-2">
+                                    <button onclick="saveSortHeader('${escapeHtml(filename)}', '${escapeHtml(item.header)}')" 
+                                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-semibold transition">💾 Сохранить</button>
+                                    <button onclick="deleteSortHeader('${escapeHtml(filename)}', '${escapeHtml(item.header)}')" 
+                                            class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs font-semibold transition">🗑️ Удалить</button>
+                                 </td>
+                             </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            html += `</div>`;
+            contentContainer.innerHTML = html;
+        } catch (err) {
+            console.error('Ошибка загрузки sort_headers:', err);
+            contentContainer.innerHTML = `<div class="text-center py-8 text-red-500">Ошибка загрузки: ${err.message}</div>`;
+        }
+    }
+    
+    // ==================== СОХРАНЕНИЕ ДАННЫХ ====================
+    
+    window.saveConfig = async function(key) {
+        const valueInput = document.getElementById(`config-value-${key}`);
+        const groupInput = document.getElementById(`config-group-${key}`);
+        
+        if (!valueInput) return;
+        
+        const value = valueInput.value;
+        const group = groupInput?.value || 'default';
+        
+        try {
+            const response = await fetch(`/config/${encodeURIComponent(key)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value: value, group_name: group })
+            });
+            
+            if (response.ok) {
+                showAlert(`Параметр "${key}" сохранён`, false);
+            } else {
+                const error = await response.json();
+                showAlert(`Ошибка: ${error.detail || response.statusText}`, true);
+            }
+        } catch (err) {
+            showAlert(`Ошибка: ${err.message}`, true);
+        }
+    };
+    
+    window.deleteConfig = async function(key) {
+        if (!confirm(`Удалить параметр "${key}"?`)) return;
+        
+        try {
+            const response = await fetch(`/config/${encodeURIComponent(key)}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                showAlert(`Параметр "${key}" удалён`, false);
+                loadConfigTable();
+            } else {
+                const error = await response.json();
+                showAlert(`Ошибка: ${error.detail || response.statusText}`, true);
+            }
+        } catch (err) {
+            showAlert(`Ошибка: ${err.message}`, true);
+        }
+    };
+    
+    window.saveTemplate = async function(id) {
+        const nameInput = document.getElementById(`template-name-${id}`);
+        const methodSelect = document.getElementById(`template-method-${id}`);
+        const pathInput = document.getElementById(`template-path-${id}`);
+        const groupInput = document.getElementById(`template-group-${id}`);
+        const payloadTextarea = document.getElementById(`template-payload-${id}`);
+        
+        let payload;
+        try {
+            payload = JSON.parse(payloadTextarea.value);
+        } catch (e) {
+            showAlert(`Ошибка JSON payload: ${e.message}`, true);
+            return;
+        }
+        
+        const body = {
+            name: nameInput.value.trim(),
+            method: methodSelect.value,
+            path: pathInput.value.trim(),
+            group_name: groupInput.value.trim() || 'default',
+            payload: payload
+        };
+        
+        if (!body.name) {
+            showAlert('Название команды не может быть пустым', true);
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/template/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            
+            if (response.ok) {
+                showAlert(`Шаблон "${body.name}" сохранён`, false);
+            } else {
+                const error = await response.json();
+                showAlert(`Ошибка: ${error.detail || response.statusText}`, true);
+            }
+        } catch (err) {
+            showAlert(`Ошибка: ${err.message}`, true);
+        }
+    };
+    
+    window.deleteTemplate = async function(id) {
+        if (!confirm(`Удалить шаблон?`)) return;
+        
+        try {
+            // Используем PUT с пустым payload или специальный эндпоинт
+            // Временно: пока нет DELETE эндпоинта, используем обновление с пометкой
+            showAlert('Функция удаления шаблона требует реализации DELETE эндпоинта', true);
+        } catch (err) {
+            showAlert(`Ошибка: ${err.message}`, true);
+        }
+    };
+    
+    window.saveSortHeader = async function(filename, header) {
+        const nameInput = document.getElementById(`header-name-${filename}-${header}`);
+        const name = nameInput?.value || '';
+        
+        try {
+            const response = await fetch('/config/sort-headers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename, header, name })
+            });
+            
+            if (response.ok) {
+                showAlert(`Заголовок "${header}" сохранён`, false);
+            } else {
+                const error = await response.json();
+                showAlert(`Ошибка: ${error.detail || response.statusText}`, true);
+            }
+        } catch (err) {
+            showAlert(`Ошибка: ${err.message}`, true);
+        }
+    };
+    
+    window.deleteSortHeader = async function(filename, header) {
+        if (!confirm(`Удалить заголовок "${header}" из "${filename}"?`)) return;
+        
+        try {
+            const response = await fetch(`/config/sort-headers/${encodeURIComponent(filename)}/${encodeURIComponent(header)}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                showAlert(`Заголовок удалён`, false);
+                loadHeadersTable();
+            } else {
+                showAlert(`Ошибка удаления`, true);
+            }
+        } catch (err) {
+            showAlert(`Ошибка: ${err.message}`, true);
+        }
+    };
+    
+    // ==================== ДОБАВЛЕНИЕ НОВЫХ ЗАПИСЕЙ ====================
+    
+    window.showAddConfigModal = function() {
+        const bodyHtml = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Ключ <span class="text-red-500">*</span></label>
+                    <input type="text" id="newConfigKey" placeholder="например: procedureCode" 
+                           class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-xs text-slate-400 mt-1">Используется как @config:ключ в payload команд</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Значение <span class="text-red-500">*</span></label>
+                    <input type="text" id="newConfigValue" placeholder="значение" 
+                           class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Группа</label>
+                    <input type="text" id="newConfigGroup" placeholder="default" value="default"
+                           class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+        `;
+        
+        openModal('➕ Добавить параметр конфигурации', bodyHtml, async () => {
+            const key = document.getElementById('newConfigKey').value.trim();
+            const value = document.getElementById('newConfigValue').value.trim();
+            const group = document.getElementById('newConfigGroup').value.trim() || 'default';
+            
+            if (!key) {
+                showAlert('Введите ключ параметра', true);
+                return;
+            }
+            if (!value) {
+                showAlert('Введите значение параметра', true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/config/${encodeURIComponent(key)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value: value, group_name: group })
+                });
+                
+                if (response.ok) {
+                    showAlert(`Параметр "${key}" добавлен`, false);
+                    closeModal();
+                    loadConfigTable();
+                } else {
+                    const error = await response.json();
+                    showAlert(`Ошибка: ${error.detail || response.statusText}`, true);
+                }
+            } catch (err) {
+                showAlert(`Ошибка: ${err.message}`, true);
+            }
+        });
+    };
+    
+    window.showAddTemplateModal = function() {
+        const defaultPayload = JSON.stringify({
+            "assignmentCompositionUid": "@config:assignmentCompositionUid",
+            "code": "@config:code"
+        }, null, 2);
+        
+        const bodyHtml = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Название команды <span class="text-red-500">*</span></label>
+                    <input type="text" id="newTemplateName" placeholder="например: Моя команда" 
+                           class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Метод</label>
+                        <select id="newTemplateMethod" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="POST">POST</option>
+                            <option value="GET">GET</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Группа</label>
+                        <input type="text" id="newTemplateGroup" placeholder="default" value="default"
+                               class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Путь (URL)</label>
+                    <input type="text" id="newTemplatePath" placeholder="/api/v1/example" 
+                           class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Payload (JSON)</label>
+                    <textarea id="newTemplatePayload" rows="6" 
+                              class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-vertical">${escapeHtml(defaultPayload)}</textarea>
+                    <p class="text-xs text-slate-400 mt-1">Используйте @config:ключ для подстановки переменных</p>
+                </div>
+            </div>
+        `;
+        
+        openModal('➕ Добавить шаблон команды', bodyHtml, async () => {
+            const name = document.getElementById('newTemplateName').value.trim();
+            const method = document.getElementById('newTemplateMethod').value;
+            const path = document.getElementById('newTemplatePath').value.trim();
+            const group = document.getElementById('newTemplateGroup').value.trim() || 'default';
+            const payloadText = document.getElementById('newTemplatePayload').value;
+            
+            if (!name) {
+                showAlert('Введите название команды', true);
+                return;
+            }
+            if (!path) {
+                showAlert('Введите путь URL', true);
+                return;
+            }
+            
+            let payload;
+            try {
+                payload = JSON.parse(payloadText);
+            } catch (e) {
+                showAlert(`Ошибка JSON payload: ${e.message}`, true);
+                return;
+            }
+            
+            try {
+                // Используем POST эндпоинт для создания нового шаблона
+                const response = await fetch('/template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, method, path, group_name: group, payload })
+                });
+                
+                if (response.ok) {
+                    showAlert(`Шаблон "${name}" добавлен`, false);
+                    closeModal();
+                    loadTemplatesTable();
+                } else {
+                    const error = await response.json();
+                    showAlert(`Ошибка: ${error.detail || response.statusText}`, true);
+                }
+            } catch (err) {
+                showAlert(`Ошибка: ${err.message}`, true);
+            }
+        });
+    };
+    
+    window.showAddHeaderModal = function(predefinedFilename = '') {
+        const bodyHtml = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Filename (таблица) <span class="text-red-500">*</span></label>
+                    <input type="text" id="newHeaderFilename" value="${escapeHtml(predefinedFilename)}" placeholder="elastic_index, index_final, keys" 
+                           class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-xs text-slate-400 mt-1">Имя таблицы или файла схемы</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Заголовок (header) <span class="text-red-500">*</span></label>
+                    <input type="text" id="newHeaderHeader" placeholder="например: procedureAssignment.status" 
+                           class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Отображаемое имя (name)</label>
+                    <input type="text" id="newHeaderName" placeholder="например: Статус процедуры" 
+                           class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-xs text-slate-400 mt-1">Как будет отображаться в таблицах интерфейса</p>
+                </div>
+            </div>
+        `;
+        
+        openModal('➕ Добавить заголовок', bodyHtml, async () => {
+            const filename = document.getElementById('newHeaderFilename').value.trim();
+            const header = document.getElementById('newHeaderHeader').value.trim();
+            const name = document.getElementById('newHeaderName').value.trim();
+            
+            if (!filename) {
+                showAlert('Введите filename', true);
+                return;
+            }
+            if (!header) {
+                showAlert('Введите заголовок', true);
+                return;
+            }
+            
+            try {
+                const response = await fetch('/config/sort-headers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename, header, name })
+                });
+                
+                if (response.ok) {
+                    showAlert(`Заголовок "${header}" добавлен в "${filename}"`, false);
+                    closeModal();
+                    loadHeadersTable();
+                } else {
+                    const error = await response.json();
+                    showAlert(`Ошибка: ${error.detail || response.statusText}`, true);
+                }
+            } catch (err) {
+                showAlert(`Ошибка: ${err.message}`, true);
+            }
+        });
+    };
+    
+    // ==================== ПЕРЕКЛЮЧЕНИЕ ТАБЛИЦ ====================
+    
+    async function switchTable(tableName) {
+        currentTable = tableName;
+        
+        contentContainer.innerHTML = `
+            <div class="text-center py-12">
+                <div class="loading-spinner mx-auto"></div>
+                <p class="text-slate-500 mt-3 text-sm">Загрузка ${tableName === 'config' ? 'параметров' : tableName === 'templates' ? 'шаблонов' : 'столбцов'}...</p>
+            </div>
+        `;
+        
+        switch (tableName) {
+            case 'config':
+                await loadConfigTable();
+                break;
+            case 'templates':
+                await loadTemplatesTable();
+                break;
+            case 'headers':
+                await loadHeadersTable();
+                break;
+        }
+    }
+    
+    tableSelect.addEventListener('change', (e) => {
+        switchTable(e.target.value);
+    });
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        switchTable('config');
+    });
+</script>
+</body>
+</html>

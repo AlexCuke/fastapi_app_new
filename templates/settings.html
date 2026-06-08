@@ -1,3 +1,4 @@
+<!-- templates/settings.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -9,7 +10,6 @@
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6 selection:bg-indigo-500 selection:text-white">
 <div class="max-w-[1000px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
     
-    <!-- HEADER -->
     <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center gap-4">
         <div class="flex items-center gap-3">
             <span class="text-2xl">⚙️</span>
@@ -18,16 +18,21 @@
                 <p class="text-xs text-slate-500">Конфигурация бэкенда, БД и Elasticsearch (.env)</p>
             </div>
         </div>
-        <a href="/" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
-            <span>⬅️</span> Вернуться на главную
-        </a>
+        <div class="flex gap-2">
+            <a href="/database" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-1.5">
+                <span>🗄️</span> Управление БД
+            </a>
+            <a href="/" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm text-sm flex items-center gap-1.5">
+                <span>⬅️</span> Вернуться на главную
+            </a>
+        </div>
     </header>
 
     <div class="p-6 space-y-6">
         <div id="statusAlert" class="hidden px-4 py-3 rounded-lg border text-sm font-semibold"></div>
 
         <form id="settingsForm" class="space-y-6">
-            <!-- РАЗДЕЛ: Tenant / User -->
+            <!-- Tenant / User -->
             <section class="space-y-4">
                 <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">👤 Tenant / User</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -42,41 +47,7 @@
                 </div>
             </section>
 
-            <!-- РАЗДЕЛ: Параметры конфигурации БД (Ключ-Значение) -->
-            <section class="space-y-4">
-                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">⚙️ Параметры конфигурации БД (Ключ-Значение)</h2>
-                <p class="text-xs text-slate-500">Эти параметры используются для подстановки значений вместо маркеров (например, <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">@config:assignmentId</code>) в шаблонах команд.</p>
-                <div id="config-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[350px] overflow-y-auto bg-slate-50 border border-slate-200 rounded-lg p-4">
-                    <p class="text-slate-400 text-xs italic">Загрузка параметров...</p>
-                </div>
-            </section>
-
-            <!-- РАЗДЕЛ: Настройки sort_headers -->
-            <section class="space-y-4">
-                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🧩 sort_headers</h2>
-                <p class="text-xs text-slate-500">Выберите строку из таблицы <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort_headers</code> и установите значение поля <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">name</code>.</p>
-                <div class="grid grid-cols-1 xl:grid-cols-[1fr_1fr_220px] gap-4 items-end">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-slate-700">filename</label>
-                        <select id="sortHeadersFilename" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"></select>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-slate-700">header</label>
-                        <select id="sortHeadersHeader" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"></select>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-slate-700">name</label>
-                        <input type="text" id="sortHeadersName" placeholder="Введите значение name" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
-                    </div>
-                    <div class="flex items-center xl:justify-end">
-                        <button type="button" id="saveSortHeaderNameBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-5 rounded-lg shadow-sm transition-all duration-150 text-sm">
-                            💾 Сохранить name
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- РАЗДЕЛ: Внешний API -->
+            <!-- Внешний API -->
             <section class="space-y-4">
                 <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🌐 Внешний API</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -91,7 +62,7 @@
                 </div>
             </section>
 
-            <!-- РАЗДЕЛ: Elasticsearch -->
+            <!-- Elasticsearch -->
             <section class="space-y-4">
                 <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🔍 Elasticsearch</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -119,11 +90,10 @@
                         <label class="text-xs font-semibold text-slate-700">OUTPUT_CSV</label>
                         <input type="text" id="OUTPUT_CSV" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm">
                     </div>
-                    
                 </div>
             </section>
 
-            <!-- РАЗДЕЛ: PostgreSQL -->
+            <!-- PostgreSQL -->
             <section class="space-y-4">
                 <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🐘 PostgreSQL Database</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -150,56 +120,6 @@
                 </div>
             </section>
 
-            <!-- Сервисные опции -->
-            <section class="space-y-4">
-                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">🛠️ Сервисные опции</h2>
-                
-                <!-- Опция 1: Импорт CSV -->
-                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm mb-4">
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-800">Импорт локального CSV в базу данных</h3>
-                        <p class="text-xs text-slate-500 mt-1">Очищает текущую таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">index</code> и импортирует туда данные напрямую из локального файла, указанного в параметре <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">OUTPUT_CSV</code>.</p>
-                    </div>
-                    <button type="button" id="importCsvBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition-all duration-150 text-sm whitespace-nowrap">
-                        📥 Импортировать CSV в index
-                    </button>
-                </div>
-
-                <!-- Опция 2: Обновление метаданных схемы столбцов (import_headers.py) -->
-                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm mb-4">
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-800">Обновить схему столбцов</h3>
-                        <p class="text-xs text-slate-500 mt-1">Запускает разбор и перенос метаданных из конфигурационных файлов <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort.csv</code>, <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort_index.csv</code> в таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort_headers</code> базы данных.</p>
-                    </div>
-                    <button type="button" id="updateHeadersBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition-all duration-150 text-sm whitespace-nowrap">
-                        ⚙️ Обновить столбцы
-                    </button>
-                </div>
-
-                <!-- Опция 3: Синхронизация index -> index_final -->
-                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm mb-4">
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-800">Перенос данных из index в index_final</h3>
-                        <p class="text-xs text-slate-500 mt-1">Очищает таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">index_final</code> и копирует в неё данные из <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">index</code> по структуре, указанной в схеме <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">sort_headers</code>.</p>
-                    </div>
-                    <button type="button" id="syncToFinalBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition-all duration-150 text-sm whitespace-nowrap">
-                        🔄 Синхронизировать в index_final
-                    </button>
-                </div>
-
-                <!-- Опция 4: Синхронизация index -> Схема Файлов (настройки сопоставления) -->
-                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-800">Обновить таблицу настроек сопоставления (settings)</h3>
-                        <p class="text-xs text-slate-500 mt-1">Создает в БД таблицу <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">settings</code>, содержащую в первом столбце имя файла схемы, а во втором — перечень его заголовков.</p>
-                    </div>
-                    <button type="button" id="syncSettingsTableBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition-all duration-150 text-sm whitespace-nowrap">
-                        🛠️ Синхронизировать настройки файлов
-                    </button>
-                </div>
-            </section>
-
-            <!-- Кнопка сохранения -->
             <div class="border-t border-slate-200 pt-4 flex justify-end">
                 <button type="button" id="saveSettingsBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-lg shadow-sm transition-all duration-150 text-sm">
                     💾 Сохранить конфигурацию
@@ -211,196 +131,26 @@
 
 <script>
     const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-    const importCsvBtn = document.getElementById('importCsvBtn');
-    const updateHeadersBtn = document.getElementById('updateHeadersBtn');
-    const syncToFinalBtn = document.getElementById('syncToFinalBtn');
-    const syncSettingsTableBtn = document.getElementById('syncSettingsTableBtn');
     const statusAlert = document.getElementById('statusAlert');
     const fields = [
-        "TENANT_ID", "USER_ID", "BASE_URL", "REQUEST_TIMEOUT", "ES_HOST", "INDEX_NAME", 
-        "SCROLL_SIZE", "REQUEST_TIMEOUT_ES", "OUTPUT_JSONL", 
+        "TENANT_ID", "USER_ID", "BASE_URL", "REQUEST_TIMEOUT", "ES_HOST", "INDEX_NAME",
+        "SCROLL_SIZE", "REQUEST_TIMEOUT_ES", "OUTPUT_JSONL",
         "OUTPUT_CSV", "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"
     ];
 
-    // Безопасное отображение алертов
     function showAlert(text, isError) {
         if (isError === undefined) isError = false;
         statusAlert.textContent = text;
-        
-        statusAlert.className = "px-4 py-3 rounded-lg border text-sm font-semibold block " + 
+        statusAlert.className = "px-4 py-3 rounded-lg border text-sm font-semibold block " +
             (isError ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200");
-            
-        setTimeout(function() {
-            statusAlert.className = 'hidden';
-        }, 6000);
+        setTimeout(function() { statusAlert.className = 'hidden'; }, 6000);
     }
-
-    // Загрузка динамических параметров конфигурации (БД)
-    async function fetchConfig() {
-        try {
-            const res = await fetch('/config/items');
-            const data = await res.json();
-            const container = document.getElementById('config-container');
-            container.innerHTML = '';
-            
-            data.forEach(item => {
-                const row = document.createElement('div');
-                row.className = 'flex flex-col gap-1 border-b border-slate-200 pb-2';
-                row.innerHTML = `
-                    <span class="text-xs text-slate-500 font-mono">${item.key}</span>
-                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
-                        <input type="text" value="${item.value}" id="cfg-${item.key}" placeholder="Value" class="bg-white text-xs px-2 py-1 rounded w-full border border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium">
-                        <input type="text" value="${item.group_name || ''}" id="cfg-group-${item.key}" placeholder="Group" class="bg-white text-xs px-2 py-1 rounded w-full border border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium">
-                        <button type="button" onclick="updateConfig('${item.key}')" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded shadow-sm font-semibold">Save</button>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-        } catch (err) {
-            console.error('Ошибка загрузки настроек конфигурации:', err);
-        }
-    }
-
-    async function updateConfig(key) {
-        const inputVal = document.getElementById('cfg-' + key).value;
-        const groupVal = document.getElementById('cfg-group-' + key).value;
-        try {
-            const res = await fetch(`/config/${key}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ value: inputVal, group_name: groupVal })
-            });
-            if (res.ok) {
-                showAlert(`Параметр обновлен успешно: ${key}`, false);
-            } else {
-                showAlert(`Ошибка обновления ${key}`, true);
-            }
-        } catch (err) {
-            showAlert(`Исключение при обновлении: ${err}`, true);
-        }
-    }
-
-    let sortHeaders = [];
-    const sortHeadersFilenameSelect = document.getElementById('sortHeadersFilename');
-    const sortHeadersHeaderSelect = document.getElementById('sortHeadersHeader');
-    const sortHeadersNameInput = document.getElementById('sortHeadersName');
-    const saveSortHeaderNameBtn = document.getElementById('saveSortHeaderNameBtn');
-
-    function escapeHtml(value) {
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
-    async function fetchSortHeaders() {
-        try {
-            const res = await fetch('/config/sort-headers');
-            if (!res.ok) throw new Error('Не удалось загрузить sort_headers');
-            sortHeaders = await res.json();
-            const filenames = [...new Set(sortHeaders.map(item => item.filename))].sort();
-
-            if (filenames.length === 0) {
-                sortHeadersFilenameSelect.innerHTML = '<option value="">Нет данных sort_headers</option>';
-                sortHeadersHeaderSelect.innerHTML = '<option value="">Сначала нажмите «Обновить столбцы»</option>';
-                sortHeadersNameInput.value = '';
-                saveSortHeaderNameBtn.disabled = true;
-                return;
-            }
-
-            sortHeadersFilenameSelect.innerHTML = filenames
-                .map(file => `<option value="${escapeHtml(file)}">${escapeHtml(file)}</option>`)
-                .join('');
-
-            saveSortHeaderNameBtn.disabled = false;
-            sortHeadersFilenameSelect.value = filenames[0];
-            updateHeaderOptions();
-        } catch (err) {
-            console.error('Ошибка загрузки sort_headers:', err);
-            showAlert('Ошибка загрузки sort_headers: ' + err.message, true);
-            sortHeadersFilenameSelect.innerHTML = '<option value="">Ошибка загрузки</option>';
-            sortHeadersHeaderSelect.innerHTML = '<option value="">Ошибка загрузки</option>';
-            saveSortHeaderNameBtn.disabled = true;
-        }
-    }
-
-    function updateHeaderOptions() {
-        const filename = sortHeadersFilenameSelect.value;
-        const headers = sortHeaders
-            .filter(item => item.filename === filename)
-            .map(item => item.header)
-            .sort();
-
-        if (headers.length === 0) {
-            sortHeadersHeaderSelect.innerHTML = '<option value="">Нет заголовков для выбранного файла</option>';
-            sortHeadersNameInput.value = '';
-            saveSortHeaderNameBtn.disabled = true;
-            return;
-        }
-
-        sortHeadersHeaderSelect.innerHTML = headers
-            .map(header => `<option value="${escapeHtml(header)}">${escapeHtml(header)}</option>`)
-            .join('');
-
-        saveSortHeaderNameBtn.disabled = false;
-        sortHeadersHeaderSelect.value = headers[0];
-        updateSortHeaderNameField();
-    }
-
-    function updateSortHeaderNameField() {
-        const row = sortHeaders.find(item =>
-            item.filename === sortHeadersFilenameSelect.value && item.header === sortHeadersHeaderSelect.value
-        );
-        sortHeadersNameInput.value = row?.name || '';
-    }
-
-    async function saveSortHeaderName() {
-        const filename = sortHeadersFilenameSelect.value;
-        const header = sortHeadersHeaderSelect.value;
-        const name = sortHeadersNameInput.value.trim();
-
-        if (!filename || !header) {
-            showAlert('Выберите filename и header.', true);
-            return;
-        }
-
-        saveSortHeaderNameBtn.disabled = true;
-        saveSortHeaderNameBtn.textContent = 'Сохранение...';
-
-        try {
-            const res = await fetch('/config/sort-headers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename, header, name })
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                showAlert('Значение name сохранено.', false);
-                await fetchSortHeaders();
-            } else {
-                showAlert('Ошибка сохранения: ' + (data.detail || 'Неизвестная ошибка'), true);
-            }
-        } catch (err) {
-            showAlert('Сетевая ошибка при сохранении: ' + err.message, true);
-        } finally {
-            saveSortHeaderNameBtn.disabled = false;
-            saveSortHeaderNameBtn.textContent = '💾 Сохранить name';
-        }
-    }
-
-    sortHeadersFilenameSelect?.addEventListener('change', updateHeaderOptions);
-    sortHeadersHeaderSelect?.addEventListener('change', updateSortHeaderNameField);
-    saveSortHeaderNameBtn?.addEventListener('click', saveSortHeaderName);
 
     async function loadAppSettings() {
         try {
             const res = await fetch('/config/app-settings');
             if (!res.ok) throw new Error('Не удалось загрузить настройки');
             const data = await res.json();
-            
             fields.forEach(f => {
                 const input = document.getElementById(f);
                 if (input && data[f] !== undefined) {
@@ -431,7 +181,7 @@
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
-            
+
             if (res.ok) {
                 showAlert('Настройки успешно обновлены! Перезапуск сервера uvicorn произойдет автоматически.', false);
             } else {
@@ -445,92 +195,9 @@
         }
     }
 
-    async function importCsv() {
-        importCsvBtn.disabled = true;
-        importCsvBtn.textContent = 'Импорт...';
-        try {
-            const res = await fetch('/import-csv', { method: 'POST' });
-            const data = await res.json();
-            if (res.ok) {
-                showAlert(data.message, false);
-            } else {
-                showAlert('Ошибка импорта: ' + (data.detail || 'Неизвестная ошибка'), true);
-            }
-        } catch (err) {
-            showAlert('Сетевая ошибка при импорте CSV: ' + err.message, true);
-        } finally {
-            importCsvBtn.disabled = false;
-            importCsvBtn.textContent = '📥 Импортировать CSV в index';
-        }
-    }
-
-    async function updateHeaders() {
-        updateHeadersBtn.disabled = true;
-        updateHeadersBtn.textContent = 'Обновление...';
-        try {
-            const res = await fetch('/import-headers', { method: 'POST' });
-            const data = await res.json();
-            if (res.ok) {
-                showAlert(data.message, false);
-                await fetchSortHeaders();
-            } else {
-                showAlert('Ошибка импорта схемы: ' + (data.detail || 'Неизвестная ошибка'), true);
-            }
-        } catch (err) {
-            showAlert('Сетевая ошибка при обновлении схемы столбцов: ' + err.message, true);
-        } finally {
-            updateHeadersBtn.disabled = false;
-            updateHeadersBtn.innerHTML = '⚙️ Обновить столбцы';
-        }
-    }
-
-    async function syncToFinal() {
-        syncToFinalBtn.disabled = true;
-        syncToFinalBtn.textContent = 'Синхронизация...';
-        try {
-            const res = await fetch('/copy-index-to-final', { method: 'POST' });
-            const data = await res.json();
-            if (res.ok) {
-                showAlert(data.message, false);
-            } else {
-                showAlert('Ошибка синхронизации: ' + (data.detail || 'Неизвестная ошибка'), true);
-            }
-        } catch (err) {
-            showAlert('Сетевая ошибка при синхронизации index_final: ' + err.message, true);
-        } finally {
-            syncToFinalBtn.disabled = false;
-            syncToFinalBtn.innerHTML = '🔄 Синхронизировать в index_final';
-        }
-    }
-
-    async function syncSettingsTable() {
-        syncSettingsTableBtn.disabled = true;
-        syncSettingsTableBtn.textContent = 'Обновление...';
-        try {
-            const res = await fetch('/import-settings-schema', { method: 'POST' });
-            const data = await res.json();
-            if (res.ok) {
-                showAlert(data.message, false);
-            } else {
-                showAlert('Ошибка обновления: ' + (data.detail || 'Неизвестная ошибка'), true);
-            }
-        } catch (err) {
-            showAlert('Сетевая ошибка при обновлении настроек сопоставления: ' + err.message, true);
-        } finally {
-            syncSettingsTableBtn.disabled = false;
-            syncSettingsTableBtn.innerHTML = '🛠️ Синхронизировать настройки файлов';
-        }
-    }
-
     window.addEventListener('DOMContentLoaded', () => {
         loadAppSettings();
-        fetchConfig();
-        fetchSortHeaders();
         saveSettingsBtn.onclick = saveAppSettings;
-        importCsvBtn.onclick = importCsv;
-        updateHeadersBtn.onclick = updateHeaders;
-        syncToFinalBtn.onclick = syncToFinal;
-        syncSettingsTableBtn.onclick = syncSettingsTable;
     });
 </script>
 </body>

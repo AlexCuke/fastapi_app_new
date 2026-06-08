@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     DB_PORT: int = 5432
     DB_NAME: str = "mydb"
     DB_USER: str = "postgres"
-    DB_PASSWORD: str = "1"
+    DB_PASSWORD: str = "sa"
 
     # Tenant и User для заголовков запросов
     TENANT_ID: str = "14932313369"
