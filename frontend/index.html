@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интеграционный сервис | Команды</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo"><i class="fas fa-microchip"></i><span>API Integrator</span></div>
+            <nav class="nav-menu">
+                <a href="/index.html" class="nav-item active"><i class="fas fa-terminal"></i> Команды</a>
+                <a href="/commands.html" class="nav-item"><i class="fas fa-database"></i> Шаблоны</a>
+                <a href="/settings.html" class="nav-item"><i class="fas fa-sliders-h"></i> Настройки</a>
+                <a href="/services.html" class="nav-item"><i class="fas fa-cloud-upload-alt"></i> Сервисы</a>
+                <a href="/index_db.html" class="nav-item"><i class="fas fa-table"></i> Данные (index_final)</a>
+                <a href="/current_patient.html" class="nav-item"><i class="fas fa-user-md"></i> Текущий пациент</a>
+                <a href="/help.html" class="nav-item"><i class="fas fa-question-circle"></i> Помощь</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-bar"><h1><i class="fas fa-terminal"></i> Выполнение команд</h1><div class="status-badge" id="apiStatusBadge">✅ API активен</div></header>
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-paper-plane"></i> Отправить команду</div>
+                    <div class="card-body">
+                        <div class="form-group"><label><i class="fas fa-tag"></i> Команда</label><select id="commandSelect" class="form-control"><option>-- Загрузка --</option></select></div>
+                        <div class="form-row"><div class="form-group half"><label><i class="fas fa-building"></i> Tenant ID</label><input type="text" id="tenantId" class="form-control" value="14932313369"></div><div class="form-group half"><label><i class="fas fa-user"></i> User ID</label><input type="text" id="userId" class="form-control" value="1"></div></div>
+                        <div class="form-group"><label><i class="fas fa-code"></i> Переопределение payload (JSON)</label><textarea id="payloadOverride" rows="8" class="form-control font-mono" placeholder="{}"></textarea><div class="helper-text"><i class="fas fa-info-circle"></i> Оставьте пустым для шаблона. Маркеры: @config:key, @now_iso.</div></div>
+                        <button id="executeBtn" class="btn btn-primary"><i class="fas fa-play"></i> Выполнить</button>
+                        <div id="executionResult" class="exec-result hidden"></div>
+                    </div>
+                </div>
+                <div class="card"><div class="card-header"><i class="fas fa-chart-line"></i> Трекер статусов</div><div class="card-body" id="trackerContainer"><div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Загрузка...</div></div></div>
+                <div class="card"><div class="card-header"><i class="fas fa-cog"></i> Ключевые настройки</div><div class="card-body" id="quickConfigContainer"><div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Загрузка...</div></div></div>
+            </div>
+        </main>
+    </div>
+    <script src="/js/common.js"></script>
+    <script>
+        const commandSelect = document.getElementById('commandSelect');
+        const tenantIdInput = document.getElementById('tenantId');
+        const userIdInput = document.getElementById('userId');
+        const payloadOverride = document.getElementById('payloadOverride');
+        const executeBtn = document.getElementById('executeBtn');
+        const execResult = document.getElementById('executionResult');
+        const trackerContainer = document.getElementById('trackerContainer');
+        const quickConfigContainer = document.getElementById('quickConfigContainer');
+        const apiStatusBadge = document.getElementById('apiStatusBadge');
+
+        async function loadCommands() {
+            try {
+                const data = await apiGet('/commands/templates');
+                commandSelect.innerHTML = '<option value="">-- Выберите команду --</option>';
+                if (data.templates?.length) {
+                    data.templates.forEach(tpl => {
+                        const opt = document.createElement('option');
+                        opt.value = tpl.name;
+                        opt.textContent = `${tpl.name} (${tpl.method})`;
+                        opt.dataset.payload = JSON.stringify(tpl.payload);
+                        commandSelect.appendChild(opt);
+                    });
+                } else commandSelect.innerHTML = '<option>Нет команд</option>';
+            } catch(e) { commandSelect.innerHTML = '<option>Ошибка загрузки</option>'; apiStatusBadge.innerHTML = '❌ Ошибка API'; }
+        }
+        commandSelect.addEventListener('change', () => {
+            if (commandSelect.selectedOptions[0]?.dataset.payload) payloadOverride.value = JSON.stringify(JSON.parse(commandSelect.selectedOptions[0].dataset.payload), null, 2);
+            else payloadOverride.value = '';
+        });
+        executeBtn.addEventListener('click', async () => {
+            const cmd = commandSelect.value;
+            if (!cmd) return alert('Выберите команду');
+            let override = null;
+            if (payloadOverride.value.trim()) try { override = JSON.parse(payloadOverride.value); } catch(e) { return alert('Ошибка: неверный JSON'); }
+            executeBtn.disabled = true; executeBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Выполнение...';
+            try {
+                const resp = await apiPost('/execute', { command_name: cmd, tenant_id: tenantIdInput.value, user_id: userIdInput.value, override_payload: override });
+                execResult.classList.remove('hidden');
+                const statusColor = resp.status_code >= 200 && resp.status_code < 300 ? '#10b981' : '#ef4444';
+                let html = `<div class="result-status" style="border-left-color:${statusColor}"><strong>Статус: ${resp.status_code}</strong>${resp.error ? `<span class="error-text">${escapeHtml(resp.error)}</span>` : ''}</div>`;
+                if (resp.response) html += `<div class="result-block"><strong>Ответ API:</strong><pre class="code-block">${escapeHtml(JSON.stringify(resp.response, null, 2))}</pre></div>`;
+                if (resp.request_payload) html += `<div class="result-block"><strong>Отправленный payload:</strong><pre class="code-block">${escapeHtml(JSON.stringify(resp.request_payload, null, 2))}</pre></div>`;
+                execResult.innerHTML = html;
+                loadStatusTracker(); loadQuickConfig();
+            } catch(e) { execResult.classList.remove('hidden'); execResult.innerHTML = `<div class="error-message">Ошибка: ${e.message}</div>`; }
+            finally { executeBtn.disabled = false; executeBtn.innerHTML = '<i class="fas fa-play"></i> Выполнить'; }
+        });
+        async function loadStatusTracker() {
+            try {
+                const t = await apiGet('/config/status-tracker');
+                trackerContainer.innerHTML = `<div class="tracker-summary"><div class="tracker-row"><span>ID назначения:</span><strong>${escapeHtml(t.assignment_id)}</strong></div><div class="tracker-row"><span>Composition UID:</span><strong>${escapeHtml(t.assignment_composition_uid)}</strong></div><div class="tracker-row"><span>Статус назначения:</span><span class="badge">${escapeHtml(t.current_assignment_status)}</span></div><div class="tracker-row"><span>Предыдущий статус:</span>${escapeHtml(t.previous_assignment_status)}</div><div class="tracker-row"><span>Последнее обновление:</span>${escapeHtml(t.last_updated)}</div><div class="tracker-row"><span>Команда-триггер:</span>${escapeHtml(t.trigger_command)}</div></div><hr><div class="tracker-procedures"><strong><i class="fas fa-stethoscope"></i> Процедуры:</strong><div class="proc-list">${(t.procedures||[]).map(p=>`<div class="proc-item"><span class="proc-code">${escapeHtml(p.code)}</span><div class="proc-statuses"><span class="status current">${escapeHtml(p.current_status)}</span><i class="fas fa-arrow-right"></i><span class="status prev">${escapeHtml(p.previous_status)}</span></div></div>`).join('') || '<div>Нет процедур</div>'}</div></div>`;
+            } catch(e) { trackerContainer.innerHTML = `<div class="error-message">Ошибка загрузки трекера</div>`; }
+        }
+        async function loadQuickConfig() {
+            try {
+                const items = await apiGet('/config/items');
+                const keys = ['assignmentCompositionUid','code','workplaceId','doctorName','resultCompositionUid','assignmentId'];
+                const filtered = items.filter(i => keys.includes(i.key));
+                quickConfigContainer.innerHTML = `<div class="config-quick-grid">${filtered.map(i=>`<div class="config-quick-item"><span class="config-key">${escapeHtml(i.key)}</span><span class="config-value">${escapeHtml(truncate(i.value,30))}</span></div>`).join('')}</div><div class="helper-text"><i class="fas fa-edit"></i> <a href="/settings.html">Редактировать настройки</a></div>`;
+            } catch(e) { quickConfigContainer.innerHTML = '<div class="error-message">Ошибка загрузки конфига</div>'; }
+        }
+        function truncate(s,l){ return s?.length>l ? s.slice(0,l)+'…' : s||''; }
+        loadCommands(); loadStatusTracker(); loadQuickConfig();
+    </script>
+</body>
+</html>

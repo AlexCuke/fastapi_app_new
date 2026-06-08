@@ -105,6 +105,15 @@ async def api_index_final():
         except Exception as e:
             return {"error": str(e), "data": []}
 
-@app.get("/beauty", response_class=HTMLResponse, include_in_schema=False)
-async def beauty_interface(request: Request):
-    return templates.TemplateResponse(request=request, name="beauty.html")
+@app.get("/help", response_class=HTMLResponse, include_in_schema=False)
+async def help_interface(request: Request):
+    return templates.TemplateResponse(request=request, name="help.html")
+
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Для разработки можно "*", потом ограничить
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Помощь — API Integration Service</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .help-section {
+            scroll-margin-top: 5rem;
+        }
+        .toc-link {
+            transition: all 0.15s ease;
+        }
+        .toc-link:hover {
+            color: #4f46e5;
+            border-left-color: #4f46e5;
+            padding-left: 0.75rem;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6 selection:bg-indigo-500 selection:text-white">
+    <div class="max-w-[1400px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+        <!-- HEADER -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">❓</span>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-950">Справочная система</h1>
+                    <p class="text-xs text-slate-500">API Integration Service — версия 2.1.0</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="/" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all text-sm">
+                    ⬅️ На главную
+                </a>
+                <a href="/settings" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm text-sm">
+                    ⚙️ Настройки
+                </a>
+                <a href="/services" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm">
+                    🛠️ Сервисы
+                </a>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
+            <!-- Оглавление (sidebar) -->
+            <aside class="lg:col-span-1 bg-slate-50 border border-slate-200 rounded-xl p-4 h-fit sticky top-6">
+                <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <span>📑</span> Содержание
+                </h2>
+                <nav class="space-y-1 text-sm">
+                    <a href="#intro" class="toc-link block py-1 pl-2 border-l-2 border-transparent text-slate-600 hover:text-indigo-600">Введение</a>
+                    <a href="#architecture" class="toc-link block py-1 pl-2 border-l-2 border-transparent text-slate-600 hover:text-indigo-600">Архитектура</a>
+                    <a href="#main-ui" class="toc-link block py-1 pl-2 border-l-2 border-transparent text-slate-600 hover:text-indigo-600">Главный интерфейс</a>
+                    <a href="#commands" class="toc-link block py-1 pl-2 border-l-2 border-transparent text-slate-600 hover:text-indigo-600">Команды и шаблоны</a>
+                    <a href="#variables" class="toc-link block py-1 pl-2 border-l-2 border-transparent text-slate-600 hover:text-indigo-600">Переменные и подстановка</a>
+                    <a href="#tables" class="toc-link block py-1 pl-2 border-l-2 border-transparent text-slate-600 hover:text-indigo-600">Базы данных и таблицы</a>
+                    <a href="#export" class="toc-link block py-1 pl-2 border-l-2 border-transparent text-slate-600 hover:text-indigo-600">Экспорт из Elasticsearch</a>
+                    <a href="#settings" class="toc-link block py-1 pl-2 border-l-2 border-transparent text-slate-600 hover:text-indigo-600">Настройки приложения</a>
+                    <a href="#services" class="toc-link block py-1 pl-2 border-l-2 border-transparent text-slate-600 hover:text-indigo-600">Сервисные функции</a>
+                    <a href="#troubleshooting" class="toc-link block py-1 pl-2 border-l-2 border-transparent text-slate-600 hover:text-indigo-600">Устранение неполадок</a>
+                </nav>
+            </aside>
+
+            <!-- Основной контент -->
+            <main class="lg:col-span-3 space-y-8">
+                <!-- Введение -->
+                <section id="intro" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">🚀 Введение</h2>
+                    <p class="text-slate-700 leading-relaxed mb-3">
+                        <strong>API Integration Service</strong> — асинхронный интеграционный сервис на базе <strong>FastAPI</strong>.
+                        Он предоставляет веб-интерфейс для выполнения предопределённых команд (шаблонов запросов) к внешнему API,
+                        подстановки конфигурационных переменных, отслеживания статусов назначений и экспорта данных из Elasticsearch в PostgreSQL.
+                    </p>
+                    <p class="text-slate-700">Сервис автоматически инициализирует все необходимые таблицы в PostgreSQL (<code>config</code>, <code>request_templates</code>, <code>status_tracker</code>, <code>elastic_index</code>, <code>index_final</code>, <code>current_assignment</code>, <code>sort_headers</code>, <code>keys</code>, <code>settings</code>).</p>
+                </section>
+
+                <!-- Архитектура -->
+                <section id="architecture" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">🧱 Архитектура</h2>
+                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                        <div class="bg-slate-50 rounded-lg p-4">
+                            <h3 class="font-bold text-indigo-800 mb-2">📁 Структура проекта</h3>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li><code>main.py</code> — точка входа FastAPI, lifespan, маршруты HTML.</li>
+                                <li><code>app/</code> — бизнес-логика: <code>db.py</code>, <code>db_ops.py</code>, <code>api_client.py</code>, <code>elastic_export.py</code>, <code>default_templates.py</code>.</li>
+                                <li><code>app/routers/</code> — эндпоинты: <code>config.py</code>, <code>commands.py</code>, <code>export.py</code>.</li>
+                                <li><code>templates/</code> — HTML-интерфейсы (<code>index.html</code>, <code>settings.html</code>, <code>commands.html</code>, <code>services.html</code>, <code>current_patient.html</code>, <code>index_db.html</code>).</li>
+                            </ul>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg p-4">
+                            <h3 class="font-bold text-indigo-800 mb-2">🔌 Внешние зависимости</h3>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li><strong>PostgreSQL</strong> — хранение конфигураций, шаблонов, данных из Elasticsearch.</li>
+                                <li><strong>Elasticsearch</strong> — источник данных о назначениях и процедурах.</li>
+                                <li><strong>Внешний API</strong> — выполнение команд (например, <code>/api/v1/procedure/planProcedure</code>).</li>
+                                <li><strong>httpx</strong> — асинхронные HTTP-запросы.</li>
+                                <li><strong>asyncpg</strong> — работа с PostgreSQL.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Главный интерфейс -->
+                <section id="main-ui" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">🖥️ Главный интерфейс (<code>/</code>)</h2>
+                    <div class="space-y-3 text-slate-700">
+                        <p>Основная рабочая панель для взаимодействия с командами:</p>
+                        <ul class="list-disc pl-6 space-y-1">
+                            <li><strong>Левая панель</strong> — список всех команд, сгруппированных по <code>group_name</code>. При клике загружается шаблон payload в редактор.</li>
+                            <li><strong>Быстрый поиск</strong> — поле <code>Composition UID</code> для выполнения команды <em>«Найти назначение по CompositionUid (GET)»</em>.</li>
+                            <li><strong>Payload Editor</strong> — редактирование JSON-тела запроса (с поддержкой маркеров).</li>
+                            <li><strong>Переменные</strong> — автоматически извлекаются из payload (маркеры <code>@config:...</code> и <code>@now_iso</code>). Позволяют вручную задать значения перед отправкой.</li>
+                            <li><strong>Трассировка</strong> — отображает отправленный запрос, ответ от API, а также текущие статусы назначения и процедур (из трекера).</li>
+                            <li><strong>Авто-выгрузка индекса</strong> — при успешном выполнении команды через 15 секунд автоматически запускается экспорт из ES в БД.</li>
+                        </ul>
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 mt-2">
+                            💡 <span class="font-semibold">Совет:</span> При успешном ответе от API (200/201) сервис автоматически обновляет значения ключевых конфигураций (<code>assignmentCompositionUid</code>, <code>code</code>, <code>workplaceId</code>, <code>doctorName</code>, <code>doctorJob</code>) в таблице <code>config</code> и пересоздаёт <code>current_assignment</code>.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Команды и шаблоны -->
+                <section id="commands" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">📋 Команды и шаблоны</h2>
+                    <div class="space-y-3 text-slate-700">
+                        <p>Страница <a href="/commands-page" class="text-indigo-600 underline">Команды</a> позволяет управлять шаблонами в таблице <code>request_templates</code>.</p>
+                        <ul class="list-disc pl-6 space-y-1">
+                            <li>Просмотр всех шаблонов с полями: ID, группа, название, метод HTTP, путь, payload (JSON).</li>
+                            <li>Редактирование заголовка, метода, пути, группы и payload.</li>
+                            <li>Сохранение изменений отправляет PUT-запрос на <code>/template/{id}</code>.</li>
+                            <li>Payload валидируется как корректный JSON-объект, затем сохраняется в БД.</li>
+                        </ul>
+                        <p class="mt-2">Шаблоны инициализируются из <code>app/default_templates.py</code> при первом запуске. Для каждого шаблона в <code>models.py</code> определена Pydantic-модель (сгенерирована из Swagger), что позволяет валидировать payload на стороне сервера перед отправкой.</p>
+                    </div>
+                </section>
+
+                <!-- Переменные и подстановка -->
+                <section id="variables" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">🔄 Переменные и подстановка маркеров</h2>
+                    <div class="space-y-3 text-slate-700">
+                        <p>В payload команд можно использовать специальные маркеры, которые будут заменены реальными значениями:</p>
+                        <div class="bg-slate-100 rounded-lg p-3 font-mono text-xs">
+                            <code>@config:assignmentCompositionUid</code> → значение из таблицы <code>config</code> с ключом <code>assignmentCompositionUid</code><br>
+                            <code>@now_iso</code> → текущая дата/время в формате ISO (UTC) с миллисекундами.
+                        </div>
+                        <p>Страница <strong>Настройки</strong> (раздел «Параметры конфигурации БД») позволяет редактировать все <code>@config:</code> переменные. Также поддерживается вложенная подстановка в объектах и массивах.</p>
+                        <p>На главной странице в блоке <strong>Переменные</strong> автоматически отображаются все маркеры из текущего payload. Вы можете ввести временные значения, которые будут применены при нажатии <strong>«Применить переменные → JSON»</strong>, без сохранения в БД.</p>
+                    </div>
+                </section>
+
+                <!-- Таблицы БД -->
+                <section id="tables" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">🗄️ Основные таблицы базы данных</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm border border-slate-200 rounded-lg">
+                            <thead class="bg-slate-100">
+                                <tr><th class="px-3 py-2 text-left">Таблица</th><th class="px-3 py-2 text-left">Назначение</th></tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr><td class="px-3 py-2 font-mono text-xs">config</td><td class="px-3 py-2">Ключ-значение для подстановки <code>@config:</code> (например, <code>assignmentCompositionUid</code>, <code>doctorName</code>).</td></tr>
+                                <tr><td class="px-3 py-2 font-mono text-xs">request_templates</td><td class="px-3 py-2">Шаблоны команд (name, method, path, payload, group_name).</td></tr>
+                                <tr><td class="px-3 py-2 font-mono text-xs">status_tracker</td><td class="px-3 py-2">История изменений статусов назначений и процедур.</td></tr>
+                                <tr><td class="px-3 py-2 font-mono text-xs">elastic_index</td><td class="px-3 py-2">Основная таблица, куда импортируются данные из Elasticsearch или локального CSV.</td></tr>
+                                <tr><td class="px-3 py-2 font-mono text-xs">index_final</td><td class="px-3 py-2">Представление данных после приведения к схеме из <code>sort_headers</code> (используется для отображения).</td></tr>
+                                <tr><td class="px-3 py-2 font-mono text-xs">current_assignment</td><td class="px-3 py-2">Срез <code>elastic_index</code> по текущему <code>assignmentCompositionUid</code>. Отображается на странице <a href="/current-patient" class="text-indigo-600">Текущий пациент</a>.</td></tr>
+                                <tr><td class="px-3 py-2 font-mono text-xs">sort_headers</td><td class="px-3 py-2">Сопоставление заголовков CSV/таблиц и их отображаемых имён (name). Заполняется из файлов <code>sort.csv</code> и <code>sort_index.csv</code>.</td></tr>
+                                <tr><td class="px-3 py-2 font-mono text-xs">keys</td><td class="px-3 py-2">Сгенерированный список уникальных колонок.</td></tr>
+                                <tr><td class="px-3 py-2 font-mono text-xs">settings</td><td class="px-3 py-2">Метаданные файлов схем (имя файла → список заголовков).</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-3">Таблицы создаются автоматически при первом запуске. Для просмотра <code>index_final</code> перейдите на <a href="/index-db" class="text-indigo-600">Index DB</a>, а для просмотра текущего назначения — <a href="/current-patient" class="text-indigo-600">Текущий пациент</a>.</p>
+                </section>
+
+                <!-- Экспорт из Elasticsearch -->
+                <section id="export" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">📤 Экспорт из Elasticsearch</h2>
+                    <div class="space-y-3 text-slate-700">
+                        <p>Страница <a href="/services" class="text-indigo-600">Сервисы</a> предоставляет кнопки для работы с Elasticsearch и локальными файлами:</p>
+                        <ul class="list-disc pl-6 space-y-1">
+                            <li><strong>Выгрузить индекс из ES</strong> — запускает фоновую задачу, которая читает все документы из индекса <code>settings.INDEX_NAME</code>, разворачивает вложенные структуры (<code>procedureAssignment.elements</code>), сохраняет <code>.jsonl</code> и <code>.csv</code> (файлы <code>OUTPUT_JSONL</code>, <code>OUTPUT_CSV</code>), а затем загружает данные в таблицы <code>elastic_index</code> и (опционально) <code>index_final</code>.</li>
+                            <li><strong>Выгрузить keys из ES</strong> — аналогично, но заполняет только таблицу <code>keys</code> на основе извлечённых данных.</li>
+                            <li><strong>Создать keys из index</strong> — генерирует таблицу <code>keys</code> на основе уже существующей <code>elastic_index</code> (без обращения к ES).</li>
+                        </ul>
+                        <p>Статус последнего экспорта можно отследить через эндпоинт <code>/export/status</code> (отображается в трекере главной страницы).</p>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+                            ⚙️ Параметры подключения к Elasticsearch (<code>ES_HOST</code>, <code>INDEX_NAME</code>, <code>SCROLL_SIZE</code>) настраиваются в файле <code>.env</code> или через веб-интерфейс настроек.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Настройки приложения -->
+                <section id="settings" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">⚙️ Страница настроек (<code>/settings</code>)</h2>
+                    <div class="space-y-3 text-slate-700">
+                        <p>Позволяет изменять системные параметры и управлять метаданными:</p>
+                        <ul class="list-disc pl-6 space-y-1">
+                            <li><strong>Tenant / User ID</strong> — значения, передаваемые в заголовках <code>X-Tenant-Id</code> и <code>X-User-Id</code> при вызове API.</li>
+                            <li><strong>Параметры конфигурации БД</strong> — все ключи из таблицы <code>config</code> с возможностью изменения значения и группы.</li>
+                            <li><strong>sort_headers</strong> — выбор файла (<code>elastic_index</code> / <code>index_final</code>) и заголовка для назначения пользовательского отображаемого имени (поле <code>name</code>), которое используется в заголовках таблиц на страницах <code>/index-db</code> и <code>/current-patient</code>.</li>
+                            <li><strong>Внешний API / Elasticsearch / PostgreSQL</strong> — полный перечень настроек из <code>.env</code> (можно сохранить, после чего сервер автоматически перезапишет <code>.env</code> и перезагрузит конфигурацию).</li>
+                            <li><strong>Сервисные опции</strong> — быстрые действия: импорт CSV в <code>elastic_index</code>, обновление схемы столбцов (<code>sort_headers</code>), синхронизация <code>index → index_final</code>, обновление таблицы <code>settings</code>.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Сервисные функции -->
+                <section id="services" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">🛠️ Дополнительные сервисные функции</h2>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div class="bg-slate-50 rounded-lg p-3">
+                            <h3 class="font-semibold text-indigo-800">📥 Импорт локального CSV</h3>
+                            <p class="text-xs text-slate-600 mt-1">Загружает содержимое файла <code>OUTPUT_CSV</code> (по умолчанию <code>output_PA.csv</code>) в таблицу <code>elastic_index</code>, полностью заменяя её.</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg p-3">
+                            <h3 class="font-semibold text-indigo-800">📄 Обновление схемы столбцов</h3>
+                            <p class="text-xs text-slate-600 mt-1">Читает файлы <code>sort.csv</code> и <code>sort_index.csv</code> (разделитель <code>;</code>) и заполняет таблицу <code>sort_headers</code>. Используется для корректного отображения заголовков и порядка колонок в <code>index_final</code>.</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg p-3">
+                            <h3 class="font-semibold text-indigo-800">🔄 Синхронизация index → index_final</h3>
+                            <p class="text-xs text-slate-600 mt-1">Копирует данные из <code>elastic_index</code> в <code>index_final</code>, выравнивая колонки согласно схеме из <code>sort_headers</code> (порядок и наличие полей).</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg p-3">
+                            <h3 class="font-semibold text-indigo-800">📁 Обновление таблицы settings</h3>
+                            <p class="text-xs text-slate-600 mt-1">Создаёт/обновляет таблицу <code>settings</code>, в которой хранятся имена файлов схем и списки их заголовков (из <code>sort.csv</code>, <code>sort_index.csv</code>, <code>keys.csv</code>).</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Устранение неполадок -->
+                <section id="troubleshooting" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">⚠️ Устранение неполадок</h2>
+                    <div class="space-y-3 text-slate-700">
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+                            <p class="font-semibold text-red-800">❌ Не удаётся подключиться к PostgreSQL</p>
+                            <p>Проверьте параметры <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_NAME</code>, <code>DB_USER</code>, <code>DB_PASSWORD</code> в файле <code>.env</code> или на странице настроек. Убедитесь, что сервер БД запущен.</p>
+                        </div>
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+                            <p class="font-semibold text-red-800">❌ Маркер <code>@config:...</code> не заменяется</p>
+                            <p>Убедитесь, что соответствующий ключ существует в таблице <code>config</code>. На странице настроек (раздел «Параметры конфигурации БД») можно добавить недостающий ключ.</p>
+                        </div>
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+                            <p class="font-semibold text-red-800">❌ Экспорт из Elasticsearch не работает</p>
+                            <p>Проверьте доступность <code>ES_HOST</code>, корректность <code>INDEX_NAME</code>. Убедитесь, что в индексе есть документы с полем <code>data.procedureAssignment</code>. Логи фоновой задачи выводятся в консоль сервера.</p>
+                        </div>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+                            <p class="font-semibold text-yellow-800">💡 Логирование и отладка</p>
+                            <p>Запустите сервер с <code>uvicorn main:app --reload --log-level debug</code> для детального вывода. Все операции с БД и запросы к API логируются.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Подвал -->
+                <div class="border-t border-slate-200 pt-4 text-center text-xs text-slate-500">
+                    API Integration Service v2.1.0 — Документация доступна также через <a href="/docs" class="text-indigo-600">/docs</a> (Swagger UI).
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

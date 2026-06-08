@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><title>Данные index_final</title><link rel="stylesheet" href="/css/style.css"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"></head>
+<body>
+<div class="app-container"><aside class="sidebar"><div class="logo"><i class="fas fa-microchip"></i><span>API Integrator</span></div><nav class="nav-menu"><a href="/index.html" class="nav-item"><i class="fas fa-terminal"></i> Команды</a><a href="/commands.html" class="nav-item"><i class="fas fa-database"></i> Шаблоны</a><a href="/settings.html" class="nav-item"><i class="fas fa-sliders-h"></i> Настройки</a><a href="/services.html" class="nav-item"><i class="fas fa-cloud-upload-alt"></i> Сервисы</a><a href="/index_db.html" class="nav-item active"><i class="fas fa-table"></i> Данные</a><a href="/current_patient.html" class="nav-item"><i class="fas fa-user-md"></i> Текущий пациент</a><a href="/help.html" class="nav-item"><i class="fas fa-question-circle"></i> Помощь</a></nav></aside>
+<main class="main-content"><header class="top-bar"><h1><i class="fas fa-table"></i> Таблица index_final</h1><div class="status-badge">📊 Данные</div></header><div class="card"><div class="card-header"><i class="fas fa-search"></i> Просмотр (первые 1000)</div><div class="card-body"><div style="overflow-x:auto"><table class="data-table" id="finalTable"><thead><tr id="finalHeaders"></tr></thead><tbody id="finalRows"></tbody></table></div></div></div></main></div>
+<script src="/js/common.js"></script>
+<script>
+    async function loadIndexFinal(){
+        const data = await apiGet('/api/index_final');
+        const rows = data.data || [];
+        if(!rows.length) { document.getElementById('finalHeaders').innerHTML = '<th>Нет данных</th>'; return; }
+        const cols = Object.keys(rows[0]);
+        const headersHtml = cols.map(c => `<th>${escapeHtml(c)}</th>`).join('');
+        document.getElementById('finalHeaders').innerHTML = headersHtml;
+        const tbody = rows.slice(0,1000).map(r => `<tr>${cols.map(c => `<td>${escapeHtml(String(r[c] || ''))}</td>`).join('')}</tr>`).join('');
+        document.getElementById('finalRows').innerHTML = tbody;
+    }
+    loadIndexFinal();
+</script>
+</body>
+</html>

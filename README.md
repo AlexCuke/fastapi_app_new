@@ -27,3 +27,6 @@
       - Интерактивный UI-интерфейс: http://localhost:8000/
       - Интерактивная OpenAPI-документация (Swagger): http://localhost:8000/docs
         
+
+        cd frontend
+        npx live-server --port=5500

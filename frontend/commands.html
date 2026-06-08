@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление шаблонами команд</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar"><div class="logo"><i class="fas fa-microchip"></i><span>API Integrator</span></div>
+            <nav class="nav-menu">
+                <a href="/index.html" class="nav-item"><i class="fas fa-terminal"></i> Команды</a>
+                <a href="/commands.html" class="nav-item active"><i class="fas fa-database"></i> Шаблоны</a>
+                <a href="/settings.html" class="nav-item"><i class="fas fa-sliders-h"></i> Настройки</a>
+                <a href="/services.html" class="nav-item"><i class="fas fa-cloud-upload-alt"></i> Сервисы</a>
+                <a href="/index_db.html" class="nav-item"><i class="fas fa-table"></i> Данные</a>
+                <a href="/current_patient.html" class="nav-item"><i class="fas fa-user-md"></i> Текущий пациент</a>
+                <a href="/help.html" class="nav-item"><i class="fas fa-question-circle"></i> Помощь</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-bar"><h1><i class="fas fa-database"></i> Шаблоны команд</h1><div class="status-badge" id="apiStatus">✅ Загружено</div></header>
+            <div class="card"><div class="card-header"><i class="fas fa-list"></i> Все шаблоны</div><div class="card-body"><div style="overflow-x:auto"><table class="data-table" id="templatesTable"><thead><tr><th>ID</th><th>Имя</th><th>Метод</th><th>Путь</th><th>Группа</th><th>Действия</th></tr></thead><tbody id="templatesList"></tbody></table></div></div></div>
+            <div class="card"><div class="card-header"><i class="fas fa-edit"></i> Редактирование / Создание</div><div class="card-body"><form id="templateForm"><input type="hidden" id="editId"><div class="form-group"><label>Имя команды</label><input type="text" id="tmplName" class="form-control" required></div><div class="form-row"><div class="form-group half"><label>Метод</label><select id="tmplMethod" class="form-control"><option>POST</option><option>GET</option></select></div><div class="form-group half"><label>Путь</label><input type="text" id="tmplPath" class="form-control" placeholder="/api/v1/procedure/..."></div></div><div class="form-group"><label>Payload (JSON)</label><textarea id="tmplPayload" rows="8" class="form-control font-mono" placeholder="{ }"></textarea></div><div class="form-group"><label>Группа</label><input type="text" id="tmplGroup" class="form-control" placeholder="default"></div><div class="form-buttons"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Сохранить</button><button type="button" id="cancelEditBtn" class="btn btn-secondary"><i class="fas fa-times"></i> Отменить</button></div></form></div></div>
+        </main>
+    </div>
+    <script src="/js/common.js"></script>
+    <script>
+        let templates = [];
+        async function loadTemplates(){
+            const data = await apiGet('/commands/templates');
+            templates = data.templates || [];
+            const tbody = document.getElementById('templatesList');
+            tbody.innerHTML = templates.map(t => `<tr><td>${t.id}</td><td>${escapeHtml(t.name)}</td><td>${t.method}</td><td>${escapeHtml(t.path)}</td><td>${escapeHtml(t.group_name||'default')}</td><td><button class="btn-icon edit" data-id="${t.id}" data-name="${escapeHtml(t.name)}" data-method="${t.method}" data-path="${escapeHtml(t.path)}" data-payload='${JSON.stringify(t.payload)}' data-group="${escapeHtml(t.group_name||'default')}"><i class="fas fa-pen"></i></button></td></tr>`).join('');
+            document.querySelectorAll('.edit').forEach(btn => btn.addEventListener('click', (e) => { const d = btn.dataset; document.getElementById('editId').value = d.id; document.getElementById('tmplName').value = d.name; document.getElementById('tmplMethod').value = d.method; document.getElementById('tmplPath').value = d.path; document.getElementById('tmplPayload').value = JSON.stringify(JSON.parse(d.payload), null, 2); document.getElementById('tmplGroup').value = d.group; }));
+        }
+        document.getElementById('templateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            let payloadJson;
+            try { payloadJson = JSON.parse(document.getElementById('tmplPayload').value); } catch(ex) { alert('Неверный JSON'); return; }
+            const body = { name: document.getElementById('tmplName').value, method: document.getElementById('tmplMethod').value, path: document.getElementById('tmplPath').value, payload: payloadJson, group_name: document.getElementById('tmplGroup').value };
+            if(id) await apiPut(`/template/${id}`, body);
+            else await apiPost('/template', body); // если нет эндпоинта POST, нужно расширить API
+            await loadTemplates();
+            document.getElementById('templateForm').reset(); document.getElementById('editId').value = '';
+        });
+        document.getElementById('cancelEditBtn').addEventListener('click', () => { document.getElementById('templateForm').reset(); document.getElementById('editId').value = ''; });
+        loadTemplates();
+    </script>
+</body>
+</html>
