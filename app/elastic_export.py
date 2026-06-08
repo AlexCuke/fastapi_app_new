@@ -123,7 +123,7 @@ async def run_export(export_index_final: bool = True):
             col_order_pa = await db_ops.get_column_order_from_db(conn, 'sort_headers', settings.SORT_FILENAME_DB)
             final_pa = write_csv_normal(settings.OUTPUT_CSV, rows, all_keys, col_order_pa)
             print(f"Created {settings.OUTPUT_CSV}: {len(rows)} rows, {len(final_pa)} cols.")
-            await db_ops.load_csv_to_table_async(conn, settings.OUTPUT_CSV, 'index')
+            await db_ops.load_csv_to_table_async(conn, settings.OUTPUT_CSV, 'elastic_index')
 
             # После импорта обновляем таблицы current_assignment и currrent_assignment
             await db_ops.sync_current_assignment(conn)

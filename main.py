@@ -85,11 +85,3 @@ async def current_patient_interface(request: Request):
             error = str(exc)
             name_map = {}
     return templates.TemplateResponse(request=request, name="current_patient.html", context={"request": request, "columns": columns, "rows": rows, "error": error, "name_map": name_map, "variables": variables})
-
-@app.get("/commands-page", response_class=HTMLResponse, include_in_schema=False)
-async def commands_interface(request: Request):
-    return templates.TemplateResponse(request=request, name="commands.html")
-
-@app.get("/services", response_class=HTMLResponse, include_in_schema=False)
-async def services_interface(request: Request):
-    return templates.TemplateResponse(request=request, name="services.html")

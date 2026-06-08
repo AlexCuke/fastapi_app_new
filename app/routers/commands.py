@@ -18,7 +18,7 @@ class TemplateUpdate(BaseModel):
     payload: Any
     group_name: Optional[str] = 'default'
 
-#Список комманд
+# Список команд
 @router.get("/commands")
 async def list_commands(conn: asyncpg.Connection = Depends(get_db)):
     records = await db_ops.get_all_templates_db(conn)
@@ -76,18 +76,15 @@ async def update_template(template_id: int, payload: TemplateUpdate, conn: async
     )
     return {"updated": True, "template_id": template_id}
 
-#Эндпоинты каждой конкретной команды
 @router.get("/template/{command_name}")
 async def get_template(command_name: str, conn: asyncpg.Connection = Depends(get_db)):
     record = await db_ops.get_template_by_name_db(conn, command_name)
     if not record:
         raise HTTPException(status_code=404, detail="Template not found")
-    import json
     model_cls = get_command_model(command_name)
     schema = model_cls.model_json_schema() if model_cls else None
     return {"template": json.loads(record['payload']), "schema": schema}
 
-#Схема каждой команды
 @router.get("/schema/{command_name}")
 async def get_command_schema(command_name: str, conn: asyncpg.Connection = Depends(get_db)):
     """JSON Schema swagger-модели для команды (если сопоставлена)."""
@@ -111,7 +108,6 @@ async def execute_command(req: ExecuteRequest, conn: asyncpg.Connection = Depend
     if not record:
         raise HTTPException(status_code=404, detail="Command design schema templates not found")
     
-    import json
     template_payload = json.loads(record['payload'])
     payload = req.override_payload if req.override_payload is not None else template_payload
     if payload is None:
@@ -137,13 +133,28 @@ async def execute_command(req: ExecuteRequest, conn: asyncpg.Connection = Depend
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=e.errors())
 
-    # Стандартные HTTP запросы
     url = settings.BASE_URL + record['path']
     status, data, err = await send_request_async(record['method'], url, resolved_payload, req.tenant_id, req.user_id)
     
-    # Если команда успешно отработала на внешнем API, синхронизируем срез и фиксируем переходы
+    # --- ИСПРАВЛЕНИЕ: обновляем config на основе успешного ответа ---
     if status in (200, 201):
+        # 1. Обновляем assignmentCompositionUid (поддерживаем оба варианта ключа)
+        uid = resolved_payload.get('assignmentCompositionUid') or resolved_payload.get('compositionUid')
+        if uid:
+            await db_ops.update_config_value(conn, 'assignmentCompositionUid', uid, 'default')
+        
+        # 2. Обновляем часто используемые параметры, если они присутствуют в payload
+        for key in ('code', 'workplaceId', 'doctorName', 'doctorJob'):
+            if key in resolved_payload:
+                await db_ops.update_config_value(conn, key, resolved_payload[key], 'default')
+        
+        # 3. Дополнительно: если есть resultCompositionUid, можно тоже сохранить
+        if 'resultCompositionUid' in resolved_payload:
+            await db_ops.update_config_value(conn, 'resultCompositionUid', resolved_payload['resultCompositionUid'], 'default')
+        
+        # 4. Пересоздаём таблицу current_assignment на основе нового UID
         await db_ops.sync_current_assignment(conn)
+        # 5. Фиксируем переходы статусов в трекере
         await db_ops.refresh_status_tracker(conn, trigger_command=req.command_name)
 
     return ExecuteResponse(

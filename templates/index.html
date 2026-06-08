@@ -53,6 +53,14 @@
                 </h3>
                 <div class="space-y-1.5 max-h-[80vh] overflow-y-auto pr-1" id="commandsList"></div>
             </div>
+
+            <!-- НОВАЯ КНОПКА ЭКСПОРТА В БД -->
+            <div class="mt-4 pt-4 border-t border-slate-200">
+                <button id="exportToDbBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all duration-150 text-sm flex items-center justify-center gap-2">
+                    <span>📤</span> Выгрузить из Elasticsearch в БД (index + index_final)
+                </button>
+                <p class="text-[10px] text-slate-500 mt-2 text-center">Асинхронная задача — данные будут записаны в таблицы <code class="font-mono">index</code> и <code class="font-mono">index_final</code></p>
+            </div>
         </aside>
 
         <!-- CENTER PANEL -->
@@ -237,7 +245,6 @@
                     const d = await r.json();
                     currentTemplate = d.template;
                     payloadEditor.value = JSON.stringify(currentTemplate, null, 2);
-                    // Сбросить переменные при смене команды
                     variableValues = {};
                     loadJsonToForm();
                     adjustPayloadEditorHeight();
@@ -283,7 +290,6 @@
         }
     }
 
-    // Рекурсивно извлекает имена переменных из payload (без значений)
     function extractCommandVariables(payload) {
         const variables = new Set();
 
@@ -305,7 +311,6 @@
         return Array.from(variables).sort();
     }
 
-    // Рендер редактируемых полей для переменных
     function renderCommandVariables() {
         const list = document.getElementById('commandVariablesList');
         const panel = document.getElementById('commandVariables');
@@ -320,10 +325,8 @@
                 return;
             }
 
-            // Убедимся, что для каждой переменной есть запись в variableValues
             vars.forEach(v => {
                 if (variableValues[v] === undefined) {
-                    // Для @now_iso можно предложить текущую дату по умолчанию
                     if (v === '@now_iso') {
                         variableValues[v] = new Date().toISOString();
                     } else {
@@ -358,23 +361,20 @@
         }
     }
 
-    // Замена переменных в payload на пользовательские значения из variableValues
     function applyVariablesToPayload() {
         try {
             let payload = JSON.parse(payloadEditor.value);
             
             function replaceVariables(obj) {
                 if (typeof obj === 'string') {
-                    // Обработка @config:...
                     if (obj.startsWith('@config:')) {
                         const varName = obj.substring('@config:'.length);
                         const userValue = variableValues[varName];
                         if (userValue !== undefined && userValue !== '') {
                             return userValue;
                         }
-                        return obj; // оставляем как есть, если значение не задано
+                        return obj;
                     }
-                    // Обработка @now_iso
                     if (obj === '@now_iso') {
                         const userValue = variableValues['@now_iso'];
                         if (userValue !== undefined && userValue !== '') {
@@ -401,7 +401,6 @@
             payloadEditor.value = JSON.stringify(newPayload, null, 2);
             showStatus('Переменные подставлены в JSON');
             adjustPayloadEditorHeight();
-            // После замены переменные могут исчезнуть, обновим их отображение
             renderCommandVariables();
         } catch(e) {
             showStatus('Ошибка при подстановке переменных: ' + e.message, true);
@@ -410,7 +409,6 @@
 
     async function handleRequest(url) {
         if (!currentCommandName) return alert('Выберите команду');
-        // Перед отправкой автоматически применяем переменные (опционально, но удобно)
         applyVariablesToPayload();
         const p = JSON.parse(payloadEditor.value);
         const body = { 
@@ -425,13 +423,41 @@
         if (r.ok) triggerAutoExport();
     }
 
+    // Новая функция для экспорта в БД из Elasticsearch
+    async function exportToDatabase() {
+        const btn = document.getElementById('exportToDbBtn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> Запуск экспорта...';
+        showStatus('Запуск экспорта из Elasticsearch...');
+        try {
+            const response = await fetch('/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ export_index_final: true })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                showStatus('Экспорт успешно запущен (фоновая задача). Обновите таблицы через несколько минут.', false);
+                // Дополнительно через 2 секунды обновим трекер статусов
+                setTimeout(() => fetchStatusTracker(), 2000);
+            } else {
+                showStatus('Ошибка: ' + (data.detail || 'Неизвестная ошибка'), true);
+            }
+        } catch (err) {
+            showStatus('Сетевая ошибка: ' + err.message, true);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
     window.onload = () => {
         loadCommands();
         fetchStatusTracker();
         document.getElementById('sendBtn').onclick = () => handleRequest('/execute');
         document.getElementById('resetBtn').onclick = () => { payloadEditor.value = JSON.stringify(currentTemplate, null, 2); loadJsonToForm(); };
         document.getElementById('reloadConfigBtn').onclick = async () => {
-            // Сначала применяем пользовательские переменные, если нужно
             applyVariablesToPayload();
             const r = await fetch('/resolve', { method: 'POST', headers: {'Content-Type':'application/json'}, body: payloadEditor.value });
             const d = await r.json();
@@ -461,6 +487,10 @@
              if (r.ok) showStatus('Найдено');
              else showStatus('Не найдено', true);
         };
+
+        // Привязываем обработчик новой кнопки
+        const exportBtn = document.getElementById('exportToDbBtn');
+        if (exportBtn) exportBtn.onclick = exportToDatabase;
     };
 </script>
 </body>

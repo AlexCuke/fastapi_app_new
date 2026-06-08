@@ -28,21 +28,21 @@ async def create_keys(conn: asyncpg.Connection = Depends(get_db)):
 
 @router.post("/import-csv")
 async def import_csv_to_index(conn: asyncpg.Connection = Depends(get_db)):
-    """Асинхронно очищает таблицу index и импортирует туда данные напрямую из CSV-файла."""
+    """Асинхронно очищает таблицу elastic_index и импортирует туда данные напрямую из CSV-файла."""
     import os
     csv_path = settings.OUTPUT_CSV
     if not os.path.exists(csv_path):
         raise HTTPException(status_code=400, detail=f"Файл {csv_path} не найден в корневом каталоге приложения.")
     try:
-        # Удаляем старую таблицу index перед импортом
-        await conn.execute("DROP TABLE IF EXISTS index")
+        # Удаляем старую таблицу elastic_index перед импортом
+        await conn.execute("DROP TABLE IF EXISTS elastic_index")
         
         # Импортируем CSV через высокопроизводительный copy_records_to_table
-        await db_ops.load_csv_to_table_async(conn, csv_path, 'index')
+        await db_ops.load_csv_to_table_async(conn, csv_path, 'elastic_index')
         
         # Сразу фиксируем обновления в трекере статусов
         await db_ops.refresh_status_tracker(conn, "Импорт локального CSV")
-        return {"message": f"Данные из файла {csv_path} успешно импортированы в таблицу 'index'."}
+        return {"message": f"Данные из файла {csv_path} успешно импортированы в таблицу 'elastic_index'."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка импорта: {str(e)}")
 
@@ -57,10 +57,10 @@ async def import_headers_to_db(conn: asyncpg.Connection = Depends(get_db)):
 
 @router.post("/copy-index-to-final")
 async def copy_index_to_final(conn: asyncpg.Connection = Depends(get_db)):
-    """Асинхронно переносит данные из index в index_final по структуре sort_headers."""
+    """Асинхронно переносит данные из elastic_index в index_final по структуре sort_headers."""
     try:
         count = await db_ops.copy_index_to_index_final_async(conn)
-        return {"message": f"Данные успешно перенесены из 'index' в 'index_final'. Импортировано {count} строк."}
+        return {"message": f"Данные успешно перенесены из 'elastic_index' в 'index_final'. Импортировано {count} строк."}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
