@@ -1,0 +1,133 @@
+/* static/styles.css — красивые дополнения к Tailwind */
+
+/* === Плавные переходы для карточек и элементов === */
+.card, .bg-white.border, .rounded-xl, .rounded-2xl {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Карточка при наведении — приподнимаем и усиливаем тень */
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.15);
+}
+
+/* Кнопки с градиентом и анимацией */
+.btn-gradient {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.btn-gradient:hover {
+    filter: brightness(1.05);
+    transform: scale(1.02);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+}
+
+/* Кнопка-опасность (удалить, отменить) */
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+.btn-danger:hover {
+    filter: brightness(1.05);
+    transform: scale(1.02);
+}
+
+/* Анимация появления для модальных окон или новых элементов */
+@keyframes fadeSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.fade-slide-up {
+    animation: fadeSlideUp 0.3s ease-out;
+}
+
+/* Улучшенные скроллбары (уже есть, но можно разнообразить) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Таблицы — улучшенный ховер и альтернативная подсветка строк */
+.data-table tbody tr:hover {
+    background-color: #fef9c3; /* мягкий жёлтый */
+    transition: background 0.1s;
+}
+.data-table tbody tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+/* Текстовые поля и textarea при фокусе */
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    ring: 2px solid #3b82f6;
+    border-color: #3b82f6;
+}
+
+/* Бейджи статусов — более плавные и яркие */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.7rem;
+    border-radius: 30px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    transition: all 0.1s;
+}
+.badge-success {
+    background: #dcfce7;
+    color: #166534;
+}
+.badge-warning {
+    background: #fef9c3;
+    color: #854d0e;
+}
+.badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Панель с результатами запроса — подсветка кода */
+.code-block {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 1rem;
+    padding: 1rem;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Тост-уведомления */
+.toast-notify {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: #1e293b;
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 2rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    animation: fadeSlideUp 0.2s ease-out;
+}

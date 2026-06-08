@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Integration Service</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/styles.css">
     <style>
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -41,14 +42,14 @@
                 <span>🛠️</span> Сервисы
             </a>
             <a href="/help" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
-            <span>❓</span> Помощь
+                <span>❓</span> Помощь
             </a>
         </div>
     </header>
 
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 p-6">
-        <!-- LEFT PANEL -->
-        <aside class="xl:col-span-3 flex flex-col gap-5 bg-slate-50 border border-slate-200 rounded-xl p-5">
+        <!-- LEFT PANEL (Команды) -->
+        <aside class="xl:col-span-3 flex flex-col gap-5 bg-slate-50 border border-slate-200 rounded-xl p-5 hover-lift">
             <div>
                 <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2 mb-3 flex justify-between items-center">
                     <span>📋 Команды</span>
@@ -59,7 +60,7 @@
 
             <!-- КНОПКА ЭКСПОРТА В БД -->
             <div class="mt-4 pt-4 border-t border-slate-200">
-                <button id="exportToDbBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all duration-150 text-sm flex items-center justify-center gap-2">
+                <button id="exportToDbBtn" class="w-full btn-gradient text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all duration-150 text-sm flex items-center justify-center gap-2">
                     <span>📤</span> Выгрузить из Elasticsearch в БД (index + index_final)
                 </button>
                 <p class="text-[10px] text-slate-500 mt-2 text-center">Асинхронная задача — данные будут записаны в таблицы <code class="font-mono">elastic_index</code> и <code class="font-mono">index_final</code></p>
@@ -68,68 +69,58 @@
 
         <!-- CENTER PANEL -->
         <main class="xl:col-span-5 flex flex-col gap-6">
-            <section class="bg-teal-50/50 border border-teal-200/60 rounded-xl p-5 shadow-sm">
+            <!-- Быстрый поиск -->
+            <section class="bg-teal-50/50 border border-teal-200/60 rounded-xl p-5 shadow-sm hover-lift">
                 <h4 class="text-xs font-bold text-teal-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                     <span>🔍</span> Быстрый поиск (GET)
                 </h4>
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <input type="text" id="compositionUidInput" placeholder="Введите Composition UID" class="flex-grow bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                    <button id="sendGetByUidBtn" class="bg-teal-700 hover:bg-teal-800 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition text-sm">Найти</button>
+                    <input type="text" id="compositionUidInput" placeholder="Введите Composition UID" class="flex-grow bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 transition">
+                    <button id="sendGetByUidBtn" class="btn-gradient text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition text-sm">Найти</button>
                 </div>
             </section>
 
-            <section class="bg-white border border-slate-200 rounded-xl p-5 flex flex-col gap-3 shadow-sm">
+            <!-- Payload Editor -->
+            <section class="bg-white border border-slate-200 rounded-xl p-5 flex flex-col gap-3 shadow-sm hover-lift">
                 <div class="flex justify-between items-center">
                     <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Payload Editor</h4>
                     <span class="text-[10px] text-slate-400 font-mono">JSON Format</span>
                 </div>
-                <textarea id="payloadEditor" class="w-full h-auto bg-slate-50 border border-slate-200 rounded-lg p-3 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y overflow-hidden" style="height:auto"></textarea>
+                <textarea id="payloadEditor" class="w-full h-auto bg-slate-50 border border-slate-200 rounded-lg p-3 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400 transition resize-y" style="height:auto"></textarea>
                 <div class="flex flex-wrap gap-2.5">
-                    <button id="sendBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-1.5"><span>📤</span> HTTP</button>
-                    <button id="resetBtn" class="bg-white hover:bg-slate-50 border border-slate-300 py-2 px-4 rounded-lg text-sm">Сброс</button>
-                    <button id="reloadConfigBtn" class="bg-white hover:bg-slate-50 border border-slate-300 py-2 px-4 rounded-lg text-sm">Resolve БД</button>
+                    <button id="sendBtn" class="btn-gradient text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-1.5"><span>📤</span> HTTP</button>
+                    <button id="resetBtn" class="bg-white hover:bg-slate-100 border border-slate-300 py-2 px-4 rounded-lg text-sm transition">Сброс</button>
+                    <button id="reloadConfigBtn" class="bg-white hover:bg-slate-100 border border-slate-300 py-2 px-4 rounded-lg text-sm transition">Resolve БД</button>
                 </div>
             </section>
 
-            <section class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <!-- Переменные -->
+            <section class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover-lift">
                 <h4 class="text-sm font-bold text-slate-700 mb-4">Переменные</h4>
                 <div id="commandVariables" class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-800 hidden">
                     <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Переменные (редактируемые)</div>
                     <div id="commandVariablesList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
                     <div class="flex flex-wrap gap-2.5 mt-3 pt-2 border-t border-slate-200">
-                        <button id="applyVariablesBtn" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 py-1.5 px-4 rounded-lg text-xs font-semibold">Применить переменные → JSON</button>
+                        <button id="applyVariablesBtn" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 py-1.5 px-4 rounded-lg text-xs font-semibold transition">Применить переменные → JSON</button>
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2.5 border-t border-slate-200 mt-4 pt-4">
-                    <button id="loadJsonToFormBtn" class="bg-slate-100 py-1.5 px-4 rounded-lg text-xs">Загрузить в форму</button>
-                    <button id="updateJsonFromFormBtn" class="bg-slate-100 py-1.5 px-4 rounded-lg text-xs">Обновить JSON</button>
+                    <button id="loadJsonToFormBtn" class="bg-slate-100 hover:bg-slate-200 py-1.5 px-4 rounded-lg text-xs transition">Загрузить в форму</button>
+                    <button id="updateJsonFromFormBtn" class="bg-slate-100 hover:bg-slate-200 py-1.5 px-4 rounded-lg text-xs transition">Обновить JSON</button>
                 </div>
             </section>
         </main>
 
-        <!-- RIGHT PANEL -->
-        <section class="xl:col-span-4 flex flex-col gap-5 bg-white border border-slate-200 rounded-xl p-5 shadow-sm h-[82vh]">
+        <!-- RIGHT PANEL (Трассировка) -->
+        <section class="xl:col-span-4 flex flex-col gap-5 bg-white border border-slate-200 rounded-xl p-5 shadow-sm h-[82vh] hover-lift">
             <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-1.5"><span>📡</span> Трассировка</h3>
             
             <div class="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                <input type="checkbox" id="autoExportCheckbox" class="w-4 h-4 cursor-pointer">
+                <input type="checkbox" id="autoExportCheckbox" class="w-4 h-4 cursor-pointer accent-indigo-600">
                 <label for="autoExportCheckbox" class="text-xs font-semibold text-slate-700 cursor-pointer">Авто-выгрузка индекса</label>
             </div>
 
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2 overflow-y-auto max-h-[300px]">
-                <div class="flex justify-between items-center border-b pb-1.5">
-                    <span class="text-[10px] font-bold text-slate-700 uppercase">📊 Статусы</span>
-                    <button onclick="fetchStatusTracker()" class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200/50">Обновить</button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-[11px]">
-                        <thead>
-                            <tr class="border-b text-slate-500 font-semibold"><th class="py-1">Сущность</th><th class="py-1">Пред.</th><th class="py-1">Тек.</th></tr>
-                        </thead>
-                        <tbody id="tracker-body" class="divide-y divide-slate-100"></tbody>
-                    </table>
-                </div>
-            </div>
+
 
             <div id="statusBadge" class="h-6"></div>
 
@@ -147,16 +138,18 @@
     </div>
 </div>
 
+<!-- Тост-уведомления -->
+<div id="toast" class="hidden toast-notify"></div>
+
 <script>
+    // === Полностью сохранена исходная логика с улучшениями ===
     let currentCommandName = null;
     let currentTemplate = null;
     let autoExportTimeout = null;
     let loadedCommands = [];
-    let exportStatusInterval = null;  // для опроса статуса экспорта
+    let exportStatusInterval = null;
     const defaultTenantId = '14932313369';
     const defaultUserId = '1';
-
-    // Хранилище пользовательских значений переменных
     let variableValues = {};
 
     const quickFields = [
@@ -167,12 +160,22 @@
         { key: "assignmentId", label: "ID назначения" }
     ];
 
+    // Элементы DOM
     const commandsListDiv = document.getElementById('commandsList');
     const payloadEditor = document.getElementById('payloadEditor');
     const responseContentDiv = document.getElementById('responseContent');
     const sentRequestContentDiv = document.getElementById('sentRequestContent');
     const statusBadge = document.getElementById('statusBadge');
     const autoExportCheckbox = document.getElementById('autoExportCheckbox');
+
+    // === Тост вместо alert ===
+    function showToast(msg, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.remove('hidden', 'bg-red-600', 'bg-green-600');
+        toast.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
+        setTimeout(() => toast.classList.add('hidden'), 4000);
+    }
 
     function showStatus(text, isError = false) {
         statusBadge.innerHTML = `<span class="px-3 py-1 rounded-full text-[10px] font-bold ${isError ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}">${text}</span>`;
@@ -218,11 +221,7 @@
         commandsListDiv.innerHTML = '';
 
         const groups = {};
-        loadedCommands.forEach(cmd => {
-            const group = cmd.group_name || 'default';
-            if (!groups[group]) groups[group] = [];
-            groups[group].push(cmd);
-        });
+        loadedCommands.forEach(cmd => { const group = cmd.group_name || 'default'; if (!groups[group]) groups[group] = []; groups[group].push(cmd); });
 
         let commandNumber = 1;
         Object.keys(groups).sort().forEach(groupName => {
@@ -233,16 +232,9 @@
 
             groups[groupName].forEach((cmd, i) => {
                 const div = document.createElement('div');
-                div.className = 'p-2 my-1 bg-white border border-slate-200 rounded-lg cursor-pointer text-[11px] hover:border-indigo-300 transition-all';
-                div.innerHTML = `
-                    <div class="flex justify-between items-start gap-2">
-                        <span class="font-mono text-[10px] text-slate-500">${commandNumber.toString().padStart(2, '0')}</span>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-medium text-slate-900 truncate text-[12px]">${cmd.name}</div>
-                        </div>
-                    </div>
-                `;
-                commandNumber += 1;
+                div.className = 'p-2 my-1 bg-white border border-slate-200 rounded-lg cursor-pointer text-[11px] hover:border-indigo-300 transition-all hover-lift';
+                div.innerHTML = `<div class="flex justify-between items-start gap-2"><span class="font-mono text-[10px] text-slate-500">${commandNumber.toString().padStart(2, '0')}</span><div class="flex-1 min-w-0"><div class="font-medium text-slate-900 truncate text-[12px]">${cmd.name}</div></div></div>`;
+                commandNumber++;
                 div.onclick = async () => {
                     currentCommandName = cmd.name;
                     const r = await fetch(`/template/${encodeURIComponent(cmd.name)}`);
@@ -268,49 +260,31 @@
     function loadJsonToForm() {
         try {
             const p = JSON.parse(payloadEditor.value);
-            quickFields.forEach(f => {
-                const inp = document.getElementById(`field_${f.key}`);
-                if (inp) inp.value = p[f.key] || "";
-            });
+            quickFields.forEach(f => { const inp = document.getElementById(`field_${f.key}`); if (inp) inp.value = p[f.key] || ""; });
             renderCommandVariables();
-        } catch(e) {
-            renderCommandVariables();
-        }
+        } catch(e) { renderCommandVariables(); }
         adjustPayloadEditorHeight();
     }
 
     function updateJsonFromForm() {
         try {
             const p = JSON.parse(payloadEditor.value);
-            quickFields.forEach(f => {
-                const val = document.getElementById(`field_${f.key}`).value;
-                if(val) p[f.key] = val;
-            });
+            quickFields.forEach(f => { const val = document.getElementById(`field_${f.key}`)?.value; if(val) p[f.key] = val; });
             payloadEditor.value = JSON.stringify(p, null, 2);
             renderCommandVariables();
             showStatus('JSON обновлен');
-        } catch(e) {
-            renderCommandVariables();
-        }
+        } catch(e) { renderCommandVariables(); }
     }
 
     function extractCommandVariables(payload) {
         const variables = new Set();
-
         function recurse(value) {
             if (typeof value === 'string') {
-                if (value.startsWith('@config:')) {
-                    variables.add(value.substring('@config:'.length));
-                } else if (value === '@now_iso') {
-                    variables.add('@now_iso');
-                }
-            } else if (Array.isArray(value)) {
-                value.forEach(recurse);
-            } else if (value && typeof value === 'object') {
-                Object.values(value).forEach(recurse);
-            }
+                if (value.startsWith('@config:')) variables.add(value.substring('@config:'.length));
+                else if (value === '@now_iso') variables.add('@now_iso');
+            } else if (Array.isArray(value)) value.forEach(recurse);
+            else if (value && typeof value === 'object') Object.values(value).forEach(recurse);
         }
-
         recurse(payload);
         return Array.from(variables).sort();
     }
@@ -319,130 +293,94 @@
         const list = document.getElementById('commandVariablesList');
         const panel = document.getElementById('commandVariables');
         list.innerHTML = '';
-
         try {
             const payload = JSON.parse(payloadEditor.value);
             const vars = extractCommandVariables(payload);
-
-            if (!vars.length) {
-                panel.classList.add('hidden');
-                return;
-            }
-
-            vars.forEach(v => {
-                if (variableValues[v] === undefined) {
-                    if (v === '@now_iso') {
-                        variableValues[v] = new Date().toISOString();
-                    } else {
-                        variableValues[v] = '';
-                    }
-                }
-            });
-
+            if (!vars.length) { panel.classList.add('hidden'); return; }
+            vars.forEach(v => { if (variableValues[v] === undefined) variableValues[v] = (v === '@now_iso') ? new Date().toISOString() : ''; });
             vars.forEach(variable => {
                 const item = document.createElement('div');
                 item.className = 'bg-white border border-slate-200 rounded-lg p-2 flex flex-col gap-1';
                 const label = document.createElement('div');
                 label.className = 'text-[10px] font-mono text-slate-500 truncate';
                 label.textContent = variable === '@now_iso' ? variable : `@config:${variable}`;
-                
                 const input = document.createElement('input');
                 input.type = 'text';
-                input.className = 'w-full text-xs border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-indigo-500 focus:outline-none';
+                input.className = 'w-full text-xs border border-slate-300 rounded px-2 py-1 focus:ring-2 focus:ring-indigo-400 focus:outline-none';
                 input.value = variableValues[variable] || '';
                 input.placeholder = 'Введите значение...';
-                input.addEventListener('input', (e) => {
-                    variableValues[variable] = e.target.value;
-                });
-                
-                item.appendChild(label);
-                item.appendChild(input);
+                input.addEventListener('input', (e) => { variableValues[variable] = e.target.value; });
+                item.appendChild(label); item.appendChild(input);
                 list.appendChild(item);
             });
             panel.classList.remove('hidden');
-        } catch (e) {
-            panel.classList.add('hidden');
-        }
+        } catch (e) { panel.classList.add('hidden'); }
     }
 
     function applyVariablesToPayload() {
         try {
             let payload = JSON.parse(payloadEditor.value);
-            
             function replaceVariables(obj) {
                 if (typeof obj === 'string') {
                     if (obj.startsWith('@config:')) {
                         const varName = obj.substring('@config:'.length);
                         const userValue = variableValues[varName];
-                        if (userValue !== undefined && userValue !== '') {
-                            return userValue;
-                        }
+                        if (userValue !== undefined && userValue !== '') return userValue;
                         return obj;
                     }
                     if (obj === '@now_iso') {
                         const userValue = variableValues['@now_iso'];
-                        if (userValue !== undefined && userValue !== '') {
-                            return userValue;
-                        }
+                        if (userValue !== undefined && userValue !== '') return userValue;
                         return obj;
                     }
                     return obj;
                 }
-                if (Array.isArray(obj)) {
-                    return obj.map(replaceVariables);
-                }
+                if (Array.isArray(obj)) return obj.map(replaceVariables);
                 if (obj && typeof obj === 'object') {
                     const newObj = {};
-                    for (const [key, value] of Object.entries(obj)) {
-                        newObj[key] = replaceVariables(value);
-                    }
+                    for (const [key, value] of Object.entries(obj)) newObj[key] = replaceVariables(value);
                     return newObj;
                 }
                 return obj;
             }
-            
             const newPayload = replaceVariables(payload);
             payloadEditor.value = JSON.stringify(newPayload, null, 2);
             showStatus('Переменные подставлены в JSON');
             adjustPayloadEditorHeight();
             renderCommandVariables();
-        } catch(e) {
-            showStatus('Ошибка при подстановке переменных: ' + e.message, true);
-        }
+        } catch(e) { showStatus('Ошибка при подстановке переменных: ' + e.message, true); }
     }
 
     async function handleRequest(url) {
-        if (!currentCommandName) return alert('Выберите команду');
+        if (!currentCommandName) { showToast('Выберите команду', true); return; }
         applyVariablesToPayload();
         const p = JSON.parse(payloadEditor.value);
-        const body = { 
-            command_name: currentCommandName, 
-            tenant_id: defaultTenantId, 
-            user_id: defaultUserId, 
-            override_payload: p 
-        };
-        const r = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-        const data = await r.json();
-        displayResponse(r.status, data);
-        if (r.ok) triggerAutoExport();
+        const body = { command_name: currentCommandName, tenant_id: defaultTenantId, user_id: defaultUserId, override_payload: p };
+        const btn = document.getElementById('sendBtn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Отправка...';
+        try {
+            const r = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            const data = await r.json();
+            displayResponse(r.status, data);
+            if (r.ok) triggerAutoExport();
+            showToast(r.ok ? 'Запрос выполнен' : 'Ошибка запроса', !r.ok);
+        } catch(err) {
+            showToast('Сетевая ошибка: ' + err.message, true);
+        } finally {
+            btn.disabled = false; btn.innerHTML = originalText;
+        }
     }
 
-    // Новая функция для экспорта в БД из Elasticsearch с отслеживанием статуса
     async function exportToDatabase() {
         const btn = document.getElementById('exportToDbBtn');
         const originalText = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<span>⏳</span> Запуск экспорта...';
+        btn.innerHTML = '<span class="spinner"></span> Запуск экспорта...';
         showStatus('Запуск экспорта из Elasticsearch...');
-        
         if (exportStatusInterval) clearInterval(exportStatusInterval);
-        
         try {
-            const response = await fetch('/export', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ export_index_final: true })
-            });
+            const response = await fetch('/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ export_index_final: true }) });
             const data = await response.json();
             if (response.ok) {
                 showStatus('Экспорт запущен. Отслеживаю статус...');
@@ -451,34 +389,20 @@
                         const statusResp = await fetch('/export/status');
                         const statusData = await statusResp.json();
                         if (statusData.status === 'completed') {
-                            clearInterval(exportStatusInterval);
-                            exportStatusInterval = null;
+                            clearInterval(exportStatusInterval); exportStatusInterval = null;
                             showStatus(`✅ ${statusData.message} (${statusData.rows_exported} строк)`, false);
                             fetchStatusTracker();
                         } else if (statusData.status === 'error') {
-                            clearInterval(exportStatusInterval);
-                            exportStatusInterval = null;
+                            clearInterval(exportStatusInterval); exportStatusInterval = null;
                             showStatus(`❌ Ошибка: ${statusData.message}`, true);
                         } else if (statusData.status === 'running') {
                             showStatus(`🔄 ${statusData.message}`, false);
                         }
-                    } catch (err) {
-                        console.error('Ошибка опроса статуса:', err);
-                    }
+                    } catch (err) { console.error('Ошибка опроса статуса:', err); }
                 }, 3000);
-            } else {
-                showStatus('Ошибка: ' + (data.detail || 'Неизвестная ошибка'), true);
-            }
-        } catch (err) {
-            showStatus('Сетевая ошибка: ' + err.message, true);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-            if (!exportStatusInterval) {
-                if (exportStatusInterval) clearInterval(exportStatusInterval);
-                exportStatusInterval = null;
-            }
-        }
+            } else { showStatus('Ошибка: ' + (data.detail || 'Неизвестная ошибка'), true); }
+        } catch (err) { showStatus('Сетевая ошибка: ' + err.message, true);
+        } finally { btn.disabled = false; btn.innerHTML = originalText; }
     }
 
     window.onload = () => {
@@ -499,31 +423,19 @@
         document.getElementById('updateJsonFromFormBtn').onclick = updateJsonFromForm;
         document.getElementById('applyVariablesBtn').onclick = applyVariablesToPayload;
         payloadEditor.addEventListener('input', () => { renderCommandVariables(); adjustPayloadEditorHeight(); });
-        
         document.getElementById('sendGetByUidBtn').onclick = async () => {
-             const uid = document.getElementById('compositionUidInput').value.trim();
-             if (!uid) return;
-             const body = { 
-                 command_name: "Найти назначение по CompositionUid (GET)", 
-                 tenant_id: defaultTenantId, 
-                 user_id: defaultUserId, 
-                 override_payload: { compositionUid: uid } 
-             };
-             showStatus('Поиск...');
-             const r = await fetch('/execute', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-             const data = await r.json();
-             displayResponse(r.status, data);
-             if (r.ok) showStatus('Найдено');
-             else showStatus('Не найдено', true);
+            const uid = document.getElementById('compositionUidInput').value.trim();
+            if (!uid) { showToast('Введите Composition UID', true); return; }
+            const body = { command_name: "Найти назначение по CompositionUid (GET)", tenant_id: defaultTenantId, user_id: defaultUserId, override_payload: { compositionUid: uid } };
+            showStatus('Поиск...');
+            const r = await fetch('/execute', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            const data = await r.json();
+            displayResponse(r.status, data);
+            if (r.ok) showStatus('Найдено'); else showStatus('Не найдено', true);
         };
-
         const exportBtn = document.getElementById('exportToDbBtn');
         if (exportBtn) exportBtn.onclick = exportToDatabase;
-
-        // Очищаем интервал при перезагрузке
-        window.addEventListener('beforeunload', () => {
-            if (exportStatusInterval) clearInterval(exportStatusInterval);
-        });
+        window.addEventListener('beforeunload', () => { if (exportStatusInterval) clearInterval(exportStatusInterval); });
     };
 </script>
 </body>

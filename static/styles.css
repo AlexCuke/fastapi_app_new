@@ -1,0 +1,141 @@
+/* === БАЗОВЫЕ УЛУЧШЕНИЯ === */
+/* Плавные переходы для карточек, кнопок и элементов */
+.card,
+.bg-white.rounded-xl,
+.bg-white.rounded-2xl,
+button,
+a {
+    transition: all 0.2s ease;
+}
+
+/* Эффект поднятия карточки при наведении */
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.15);
+}
+
+/* === КНОПКИ С ГРАДИЕНТОМ === */
+.btn-gradient {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.btn-gradient:hover {
+    filter: brightness(1.05);
+    transform: scale(1.02);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+.btn-danger:hover {
+    filter: brightness(1.05);
+    transform: scale(1.02);
+}
+
+/* === АНИМАЦИИ === */
+@keyframes fadeSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.fade-slide-up {
+    animation: fadeSlideUp 0.3s ease-out;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.6s linear infinite;
+}
+
+/* === ТАБЛИЦЫ (улучшенный ховер) === */
+.data-table tbody tr:hover {
+    background-color: #fef9c3;
+    transition: background 0.1s;
+}
+.data-table tbody tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+/* === ФОРМЫ (фокус) === */
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+
+/* === БЕЙДЖИ СТАТУСОВ === */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.7rem;
+    border-radius: 30px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+.badge-success {
+    background: #dcfce7;
+    color: #166534;
+}
+.badge-warning {
+    background: #fef9c3;
+    color: #854d0e;
+}
+.badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* === БЛОК КОДА (JSON, ответы API) === */
+.code-block {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 1rem;
+    padding: 1rem;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* === ТОСТ-УВЕДОМЛЕНИЯ === */
+.toast-notify {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: #1e293b;
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 2rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    animation: fadeSlideUp 0.2s ease-out;
+}
+
+/* === СКЕЛЕТОН (загрузка) === */
+.skeleton {
+    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+    border-radius: 0.5rem;
+}
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from app.db import db_manager
 import app.db_ops as db_ops
 from app.routers import config, commands, export
-
+from fastapi.staticfiles import StaticFiles
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db_manager.connect()
@@ -117,3 +117,4 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount("/static", StaticFiles(directory="static"), name="static")

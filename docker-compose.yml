@@ -1,43 +1,60 @@
+version: '3.8'
+
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: fastapi-integration-postgres
+  db:
+    image: postgres:15-alpine
+    container_name: integration_db
     environment:
-      POSTGRES_DB: mydb
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: sa
+      POSTGRES_PASSWORD: 1
+      POSTGRES_DB: mydb
     ports:
-      - "5432:5432"
+      - "5432:5432"   # проброс на хост (опционально)
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d mydb"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 5s
+      retries: 5
 
   app:
     build: .
-    container_name: fastapi-integration-app
+    container_name: integration_app
     ports:
       - "8000:8000"
-    env_file:
-      - .env
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      DB_HOST: postgres
+      # Подключение к PostgreSQL внутри Docker-сети
+      DB_HOST: db
       DB_PORT: 5432
       DB_NAME: mydb
       DB_USER: postgres
-      DB_PASSWORD: sa
-    depends_on:
-      postgres:
-        condition: service_healthy
+      DB_PASSWORD: 1
+
+      # Остальные настройки (можно переопределить)
+      BASE_URL: http://procedure-dev.m15.dzm
+      REQUEST_TIMEOUT: 10
+      ES_HOST: http://elastic-dev.m15.dzm:80/
+      INDEX_NAME: default_procedure-patients-list
+      SCROLL_SIZE: 1000
+      REQUEST_TIMEOUT_ES: 60
+      OUTPUT_JSONL: export.jsonl
+      OUTPUT_CSV: output_PA.csv
+      TENANT_ID: "14932313369"
+      USER_ID: "1"
+      SORT_FILENAME_DB: index.csv
+      SORT_INDEX_FILENAME_DB: index_final
     volumes:
-      - .:/app
-      - ./sort_index.csv:/app/sort_index.csv:ro
-      - ./sort.csv:/app/sort.csv:ro
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      # Проброс статики (если нужно редактировать CSS на ходу — опционально)
+      - ./static:/app/static
+      # Проброс CSV-файлов для импорта
+      - ./output_PA.csv:/app/output_PA.csv
+      - ./sort.csv:/app/sort.csv
+      - ./sort_index.csv:/app/sort_index.csv
+    restart: unless-stopped
 
 volumes:
-  pgdata:
+  postgres_data:
