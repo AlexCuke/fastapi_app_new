@@ -1,9 +1,24 @@
 import json
 import csv
+from datetime import datetime
 from elasticsearch import AsyncElasticsearch
 from app.config import settings
 from app.db import db_manager
 import app.db_ops as db_ops
+
+# Глобальный статус экспорта
+last_export_status = {
+    "status": "idle",  # idle, running, completed, error
+    "message": "",
+    "timestamp": None,
+    "rows_exported": 0
+}
+
+def set_export_status(status: str, message: str, rows: int = 0):
+    last_export_status["status"] = status
+    last_export_status["message"] = message
+    last_export_status["timestamp"] = datetime.now().isoformat()
+    last_export_status["rows_exported"] = rows
 
 def flatten_dict(obj, parent_key='', sep='.'):
     items = {}
@@ -74,6 +89,7 @@ def write_csv_normal(filename, rows, all_keys, column_order):
     return final_fields
 
 async def run_export(export_index_final: bool = True):
+    set_export_status("running", "Экспорт запущен...")
     es = AsyncElasticsearch([settings.ES_HOST], verify_certs=False)
     try:
         response = await es.search(
@@ -116,6 +132,7 @@ async def run_export(export_index_final: bool = True):
         await es.clear_scroll(scroll_id=scroll_id)
 
         if not rows:
+            set_export_status("completed", "Нет записей для экспорта.", 0)
             print("No matching records found to insert.")
             return
 
@@ -125,10 +142,8 @@ async def run_export(export_index_final: bool = True):
             print(f"Created {settings.OUTPUT_CSV}: {len(rows)} rows, {len(final_pa)} cols.")
             await db_ops.load_csv_to_table_async(conn, settings.OUTPUT_CSV, 'elastic_index')
 
-            # После импорта обновляем таблицы current_assignment и currrent_assignment
             await db_ops.sync_current_assignment(conn)
 
-            # После импорта данных из Elasticsearch фиксируем изменения логов статусов в базе данных
             await db_ops.refresh_status_tracker(conn, trigger_command="Импорт из Elasticsearch")
 
             if export_index_final:
@@ -138,10 +153,15 @@ async def run_export(export_index_final: bool = True):
                     print(f"Direct loaded {len(rows)} rows into table 'index_final'")
                 else:
                     print("Missing column sort headers mapping for 'index_final'")
+        set_export_status("completed", f"Экспорт завершён. Загружено {len(rows)} строк.", len(rows))
+    except Exception as e:
+        set_export_status("error", f"Ошибка: {str(e)}")
+        print(f"Export error: {e}")
     finally:
         await es.close()
 
 async def export_to_keys_job():
+    set_export_status("running", "Экспорт keys запущен...")
     es = AsyncElasticsearch([settings.ES_HOST], verify_certs=False)
     try:
         response = await es.search(
@@ -178,17 +198,23 @@ async def export_to_keys_job():
         await es.clear_scroll(scroll_id=scroll_id)
 
         if not rows:
+            set_export_status("completed", "Нет записей для keys.", 0)
             print("No keys records extracted.")
             return
 
         async with db_manager.pool.acquire() as conn:
             column_order = await db_ops.get_sort_headers_from_index(conn)
             if not column_order:
-                print("Aborting. Failed to retrieve sort order headers.")
+                set_export_status("error", "Не удалось получить порядок столбцов для keys.")
                 return
             await db_ops.load_rows_to_table_directly_async(conn, rows, column_order, 'keys')
+            set_export_status("completed", f"Keys экспортированы. Загружено {len(rows)} строк.", len(rows))
             print(f"Successfully finalized keys export, populated {len(rows)} records.")
     except Exception as e:
+        set_export_status("error", f"Ошибка keys: {str(e)}")
         print(f"Failed keys export execution: {e}")
     finally:
         await es.close()
+
+def get_export_status():
+    return last_export_status

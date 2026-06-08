@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from app.db import db_manager
@@ -29,6 +29,7 @@ async def web_interface(request: Request):
 @app.get("/settings", response_class=HTMLResponse, include_in_schema=False)
 async def settings_interface(request: Request):
     return templates.TemplateResponse(request=request, name="settings.html")
+
 @app.get("/index-db", response_class=HTMLResponse, include_in_schema=False)
 async def index_db_interface(request: Request):
     columns = []
@@ -85,3 +86,25 @@ async def current_patient_interface(request: Request):
             error = str(exc)
             name_map = {}
     return templates.TemplateResponse(request=request, name="current_patient.html", context={"request": request, "columns": columns, "rows": rows, "error": error, "name_map": name_map, "variables": variables})
+
+@app.get("/commands-page", response_class=HTMLResponse, include_in_schema=False)
+async def commands_interface(request: Request):
+    return templates.TemplateResponse(request=request, name="commands.html")
+
+@app.get("/services", response_class=HTMLResponse, include_in_schema=False)
+async def services_interface(request: Request):
+    return templates.TemplateResponse(request=request, name="services.html")
+
+@app.get("/api/index_final", response_class=JSONResponse, include_in_schema=False)
+async def api_index_final():
+    async with db_manager.pool.acquire() as conn:
+        try:
+            records = await conn.fetch('SELECT * FROM "index_final"')
+            rows = [dict(record) for record in records]
+            return {"data": rows}
+        except Exception as e:
+            return {"error": str(e), "data": []}
+
+@app.get("/beauty", response_class=HTMLResponse, include_in_schema=False)
+async def beauty_interface(request: Request):
+    return templates.TemplateResponse(request=request, name="beauty.html")

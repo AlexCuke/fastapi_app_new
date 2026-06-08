@@ -54,12 +54,12 @@
                 <div class="space-y-1.5 max-h-[80vh] overflow-y-auto pr-1" id="commandsList"></div>
             </div>
 
-            <!-- НОВАЯ КНОПКА ЭКСПОРТА В БД -->
+            <!-- КНОПКА ЭКСПОРТА В БД -->
             <div class="mt-4 pt-4 border-t border-slate-200">
                 <button id="exportToDbBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all duration-150 text-sm flex items-center justify-center gap-2">
                     <span>📤</span> Выгрузить из Elasticsearch в БД (index + index_final)
                 </button>
-                <p class="text-[10px] text-slate-500 mt-2 text-center">Асинхронная задача — данные будут записаны в таблицы <code class="font-mono">index</code> и <code class="font-mono">index_final</code></p>
+                <p class="text-[10px] text-slate-500 mt-2 text-center">Асинхронная задача — данные будут записаны в таблицы <code class="font-mono">elastic_index</code> и <code class="font-mono">index_final</code></p>
             </div>
         </aside>
 
@@ -149,6 +149,7 @@
     let currentTemplate = null;
     let autoExportTimeout = null;
     let loadedCommands = [];
+    let exportStatusInterval = null;  // для опроса статуса экспорта
     const defaultTenantId = '14932313369';
     const defaultUserId = '1';
 
@@ -423,13 +424,16 @@
         if (r.ok) triggerAutoExport();
     }
 
-    // Новая функция для экспорта в БД из Elasticsearch
+    // Новая функция для экспорта в БД из Elasticsearch с отслеживанием статуса
     async function exportToDatabase() {
         const btn = document.getElementById('exportToDbBtn');
         const originalText = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span>⏳</span> Запуск экспорта...';
         showStatus('Запуск экспорта из Elasticsearch...');
+        
+        if (exportStatusInterval) clearInterval(exportStatusInterval);
+        
         try {
             const response = await fetch('/export', {
                 method: 'POST',
@@ -438,9 +442,27 @@
             });
             const data = await response.json();
             if (response.ok) {
-                showStatus('Экспорт успешно запущен (фоновая задача). Обновите таблицы через несколько минут.', false);
-                // Дополнительно через 2 секунды обновим трекер статусов
-                setTimeout(() => fetchStatusTracker(), 2000);
+                showStatus('Экспорт запущен. Отслеживаю статус...');
+                exportStatusInterval = setInterval(async () => {
+                    try {
+                        const statusResp = await fetch('/export/status');
+                        const statusData = await statusResp.json();
+                        if (statusData.status === 'completed') {
+                            clearInterval(exportStatusInterval);
+                            exportStatusInterval = null;
+                            showStatus(`✅ ${statusData.message} (${statusData.rows_exported} строк)`, false);
+                            fetchStatusTracker();
+                        } else if (statusData.status === 'error') {
+                            clearInterval(exportStatusInterval);
+                            exportStatusInterval = null;
+                            showStatus(`❌ Ошибка: ${statusData.message}`, true);
+                        } else if (statusData.status === 'running') {
+                            showStatus(`🔄 ${statusData.message}`, false);
+                        }
+                    } catch (err) {
+                        console.error('Ошибка опроса статуса:', err);
+                    }
+                }, 3000);
             } else {
                 showStatus('Ошибка: ' + (data.detail || 'Неизвестная ошибка'), true);
             }
@@ -449,6 +471,10 @@
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalText;
+            if (!exportStatusInterval) {
+                if (exportStatusInterval) clearInterval(exportStatusInterval);
+                exportStatusInterval = null;
+            }
         }
     }
 
@@ -488,9 +514,13 @@
              else showStatus('Не найдено', true);
         };
 
-        // Привязываем обработчик новой кнопки
         const exportBtn = document.getElementById('exportToDbBtn');
         if (exportBtn) exportBtn.onclick = exportToDatabase;
+
+        // Очищаем интервал при перезагрузке
+        window.addEventListener('beforeunload', () => {
+            if (exportStatusInterval) clearInterval(exportStatusInterval);
+        });
     };
 </script>
 </body>

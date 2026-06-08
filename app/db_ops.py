@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Any
 import asyncpg
 
 SCHEMA_FILE_MAPPING = {
-    'sort.csv': 'elastic_index',          # изменено
+    'sort.csv': 'elastic_index',          # изменено с 'index'
     'sort_index.csv': 'index_final',
     'keys.csv': 'keys',
 }
