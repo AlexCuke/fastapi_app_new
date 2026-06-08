@@ -2,10 +2,11 @@ import httpx
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Tuple
 from app.config import settings
-
+#Текущая дата
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace("+00:00", "Z")
 
+#Замена маркеров на конкретные значения (в командах)
 def resolve_value(v: Any, config: Dict[str, str]) -> Any:
     if isinstance(v, str):
         if v.startswith('@config:'):
@@ -19,9 +20,11 @@ def resolve_value(v: Any, config: Dict[str, str]) -> Any:
         return [resolve_value(item, config) for item in v]
     return v
 
+#Замена маркеров на конкретные значения
 def substitute_markers(payload: Dict[str, Any], config: Dict[str, str]) -> Dict[str, Any]:
     return resolve_value(payload, config)
 
+#отправка запроса
 async def send_request_async(
     method: str, 
     url: str, 
