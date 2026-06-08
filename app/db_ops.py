@@ -30,8 +30,12 @@ async def init_config_table(conn: asyncpg.Connection):
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS config (
             key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
+            value TEXT NOT NULL,
+            group_name TEXT DEFAULT 'default'
         )
+    """)
+    await conn.execute("""
+        ALTER TABLE config ADD COLUMN IF NOT EXISTS group_name TEXT DEFAULT 'default'
     """)
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS status_tracker (
@@ -79,8 +83,8 @@ async def init_config_table(conn: asyncpg.Connection):
     }
     for key, val in default_config.items():
         await conn.execute(
-            "INSERT INTO config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING",
-            key, str(val)
+            "INSERT INTO config (key, value, group_name) VALUES ($1, $2, $3) ON CONFLICT (key) DO NOTHING",
+            key, str(val), 'default'
         )
 
 async def init_templates_table(conn: asyncpg.Connection):
@@ -91,16 +95,20 @@ async def init_templates_table(conn: asyncpg.Connection):
             name TEXT UNIQUE NOT NULL,
             method TEXT NOT NULL,
             path TEXT NOT NULL,
-            payload JSONB NOT NULL
+            payload JSONB NOT NULL,
+            group_name TEXT DEFAULT 'default'
         )
+    """)
+    await conn.execute("""
+        ALTER TABLE request_templates ADD COLUMN IF NOT EXISTS group_name TEXT DEFAULT 'default'
     """)
     count = await conn.fetchval("SELECT COUNT(*) FROM request_templates")
     if count == 0:
         from app.default_templates import DEFAULT_TEMPLATES
         for tmpl in DEFAULT_TEMPLATES:
             await conn.execute(
-                "INSERT INTO request_templates (name, method, path, payload) VALUES ($1, $2, $3, $4)",
-                tmpl['name'], tmpl['method'], tmpl['path'], json.dumps(tmpl['payload'])
+                "INSERT INTO request_templates (name, method, path, payload, group_name) VALUES ($1, $2, $3, $4, $5)",
+                tmpl['name'], tmpl['method'], tmpl['path'], json.dumps(tmpl['payload']), tmpl.get('group_name', 'default')
             )
 
 async def refresh_status_tracker(conn: asyncpg.Connection, trigger_command: str = "Системный апдейт"):
@@ -272,10 +280,22 @@ async def load_config(conn: asyncpg.Connection) -> Dict[str, str]:
     rows = await conn.fetch("SELECT key, value FROM config")
     return {row['key']: row['value'] for row in rows}
 
-async def update_config_value(conn: asyncpg.Connection, key: str, value: str):
+async def load_config_items(conn: asyncpg.Connection) -> List[Dict[str, str]]:
+    rows = await conn.fetch("SELECT key, value, group_name FROM config ORDER BY key")
+    return [
+        {
+            "key": row['key'],
+            "value": row['value'],
+            "group_name": row['group_name']
+        }
+        for row in rows
+    ]
+
+async def update_config_value(conn: asyncpg.Connection, key: str, value: str, group_name: Optional[str] = None):
     await conn.execute(
-        "INSERT INTO config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
-        key, value
+        "INSERT INTO config (key, value, group_name) VALUES ($1, $2, $3) "
+        "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, group_name = COALESCE(EXCLUDED.group_name, config.group_name)",
+        key, value, group_name
     )
 
 async def get_sort_headers_from_index(conn: asyncpg.Connection) -> List[str]:
@@ -339,16 +359,37 @@ async def load_rows_to_table_directly_async(conn: asyncpg.Connection, rows: List
         await conn.copy_records_to_table(table_name, records=records, columns=column_order)
 
 async def get_all_templates_db(conn: asyncpg.Connection) -> List[asyncpg.Record]:
-    return await conn.fetch("SELECT id, name, method, path, payload FROM request_templates ORDER BY id")
+    return await conn.fetch("SELECT id, name, method, path, payload, group_name FROM request_templates ORDER BY id")
+
+async def get_template_by_id_db(conn: asyncpg.Connection, template_id: int) -> Optional[asyncpg.Record]:
+    return await conn.fetchrow(
+        "SELECT id, name, method, path, payload, group_name FROM request_templates WHERE id = $1",
+        template_id
+    )
 
 async def get_template_by_name_db(conn: asyncpg.Connection, name: str) -> Optional[asyncpg.Record]:
     return await conn.fetchrow("SELECT id, name, method, path, payload FROM request_templates WHERE name = $1", name)
+
+async def update_template_db(
+    conn: asyncpg.Connection,
+    template_id: int,
+    name: str,
+    method: str,
+    path: str,
+    payload: dict,
+    group_name: str
+):
+    await conn.execute(
+        "UPDATE request_templates SET name=$1, method=$2, path=$3, payload=$4, group_name=$5 WHERE id=$6",
+        name, method, path, json.dumps(payload), group_name, template_id
+    )
 
 async def load_headers_to_table_async(conn: asyncpg.Connection) -> int:
     """Асинхронно считывает заголовки из csv-файлов схемы и импортирует их в sort_headers."""
     table_name = 'sort_headers'
 
-    await conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} (filename TEXT, header TEXT)")
+    await conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} (filename TEXT, header TEXT, name TEXT)")
+    await conn.execute(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS name TEXT")
     await conn.execute(f"DELETE FROM {table_name}")
 
     inserted = 0
@@ -360,11 +401,31 @@ async def load_headers_to_table_async(conn: asyncpg.Connection) -> int:
             continue
         for header in clean_headers:
             await conn.execute(
-                f"INSERT INTO {table_name} (filename, header) VALUES ($1, $2)",
-                new_name, header
+                f"INSERT INTO {table_name} (filename, header, name) VALUES ($1, $2, $3)",
+                new_name, header, header
             )
             inserted += 1
     return inserted
+
+
+async def get_sort_headers(conn: asyncpg.Connection) -> List[Dict[str, str]]:
+    await conn.execute("CREATE TABLE IF NOT EXISTS sort_headers (filename TEXT, header TEXT, name TEXT)")
+    await conn.execute("ALTER TABLE sort_headers ADD COLUMN IF NOT EXISTS name TEXT")
+    rows = await conn.fetch("SELECT filename, header, name FROM sort_headers ORDER BY filename, header")
+    return [dict(row) for row in rows]
+
+
+async def update_sort_header_name(conn: asyncpg.Connection, filename: str, header: str, name: str) -> None:
+    await conn.execute("CREATE TABLE IF NOT EXISTS sort_headers (filename TEXT, header TEXT, name TEXT)")
+    result = await conn.execute(
+        "UPDATE sort_headers SET name=$1 WHERE filename=$2 AND header=$3",
+        name, filename, header
+    )
+    if result == 'UPDATE 0':
+        await conn.execute(
+            "INSERT INTO sort_headers (filename, header, name) VALUES ($1, $2, $3)",
+            filename, header, name
+        )
 
 
 async def init_settings_schema_table_async(conn: asyncpg.Connection) -> int:

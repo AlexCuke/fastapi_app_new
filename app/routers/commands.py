@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 import asyncpg
-from typing import List, Dict, Any
-from pydantic import ValidationError
+import json
+from typing import List, Dict, Any, Optional
+from pydantic import BaseModel, ValidationError
 from app.db import get_db
 from app.models import ExecuteRequest, ExecuteResponse, get_command_model, validate_command_payload
 from app.api_client import substitute_markers, send_request_async
@@ -10,11 +11,72 @@ import app.db_ops as db_ops
 
 router = APIRouter(tags=["Integration Commands"])
 
-@router.get("/commands", response_model=Dict[str, List[str]])
+class TemplateUpdate(BaseModel):
+    name: str
+    method: str
+    path: str
+    payload: Any
+    group_name: Optional[str] = 'default'
+
+#Список комманд
+@router.get("/commands")
 async def list_commands(conn: asyncpg.Connection = Depends(get_db)):
     records = await db_ops.get_all_templates_db(conn)
-    return {"commands": [r['name'] for r in records]}
+    return {
+        "commands": [
+            {
+                "name": r['name'],
+                "group_name": r.get('group_name', 'default')
+            }
+            for r in records
+        ]
+    }
 
+@router.get("/commands/templates")
+async def list_templates(conn: asyncpg.Connection = Depends(get_db)):
+    records = await db_ops.get_all_templates_db(conn)
+    return {
+        "templates": [
+            {
+                "id": r['id'],
+                "name": r['name'],
+                "method": r['method'],
+                "path": r['path'],
+                "payload": r['payload'],
+                "group_name": r.get('group_name', 'default')
+            }
+            for r in records
+        ]
+    }
+
+@router.put("/template/{template_id:int}")
+async def update_template(template_id: int, payload: TemplateUpdate, conn: asyncpg.Connection = Depends(get_db)):
+    record = await db_ops.get_template_by_id_db(conn, template_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    template_payload = payload.payload
+    if isinstance(template_payload, str):
+        try:
+            template_payload = json.loads(template_payload)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Payload должен быть корректным JSON-объектом")
+
+    if not isinstance(template_payload, dict):
+        raise HTTPException(status_code=400, detail="Payload должен быть JSON-объектом")
+
+    await db_ops.update_template_db(
+        conn,
+        template_id,
+        payload.name,
+        payload.method,
+        payload.path,
+        template_payload,
+        payload.group_name or 'default'
+    )
+    return {"updated": True, "template_id": template_id}
+
+#Эндпоинты каждой конкретной команды
 @router.get("/template/{command_name}")
 async def get_template(command_name: str, conn: asyncpg.Connection = Depends(get_db)):
     record = await db_ops.get_template_by_name_db(conn, command_name)
@@ -25,6 +87,7 @@ async def get_template(command_name: str, conn: asyncpg.Connection = Depends(get
     schema = model_cls.model_json_schema() if model_cls else None
     return {"template": json.loads(record['payload']), "schema": schema}
 
+#Схема каждой команды
 @router.get("/schema/{command_name}")
 async def get_command_schema(command_name: str, conn: asyncpg.Connection = Depends(get_db)):
     """JSON Schema swagger-модели для команды (если сопоставлена)."""
@@ -73,34 +136,6 @@ async def execute_command(req: ExecuteRequest, conn: asyncpg.Connection = Depend
         resolved_payload = validate_command_payload(req.command_name, resolved_payload)
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=e.errors())
-
-    # Если метод команды равен KAFKA, публикуем данные напрямую в брокер
-    if record['method'].upper() == "KAFKA":
-        from app.kafka_producer import kafka_manager
-        try:
-            topic = record['path'] or settings.KAFKA_TOPIC_NAME
-            # Используем в качестве Partition Key идентификатор assignmentCompositionUid
-            msg_key = resolved_payload.get("assignmentCompositionUid") or resolved_payload.get("assignmentId")
-            
-            await kafka_manager.send_message(topic, value=resolved_payload, key=msg_key)
-            
-            # Синхронизируем срезы данных и фиксируем статус
-            await db_ops.sync_current_assignment(conn)
-            await db_ops.refresh_status_tracker(conn, trigger_command=req.command_name)
-            
-            return ExecuteResponse(
-                status_code=200,
-                response={"message": f"Сообщение успешно опубликовано в топик Kafka '{topic}'", "partition_key": msg_key},
-                request_payload=resolved_payload,
-                error=None
-            )
-        except Exception as e:
-            return ExecuteResponse(
-                status_code=500,
-                response=None,
-                request_payload=resolved_payload,
-                error=f"Ошибка паблишинга в Kafka: {str(e)}"
-            )
 
     # Стандартные HTTP запросы
     url = settings.BASE_URL + record['path']

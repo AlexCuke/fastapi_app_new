@@ -1,19 +1,58 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 import asyncpg
+from typing import Optional
 from app.db import get_db
 from app.config import settings
 import app.db_ops as db_ops
 
 router = APIRouter(prefix="/config", tags=["Configuration"])
 
+class ConfigUpdate(BaseModel):
+    value: str
+    group_name: Optional[str] = None
+
+class SortHeaderUpdate(BaseModel):
+    filename: str
+    header: str
+    name: str
+
 @router.get("")
 async def get_config(conn: asyncpg.Connection = Depends(get_db)):
     return await db_ops.load_config(conn)
 
+@router.get("/items")
+async def get_config_items(conn: asyncpg.Connection = Depends(get_db)):
+    return await db_ops.load_config_items(conn)
+
 @router.put("/{key}")
-async def set_config(key: str, value: str, conn: asyncpg.Connection = Depends(get_db)):
-    await db_ops.update_config_value(conn, key, value)
-    return {"key": key, "value": value}
+async def set_config(
+    key: str,
+    value: Optional[str] = None,
+    payload: Optional[ConfigUpdate] = None,
+    conn: asyncpg.Connection = Depends(get_db)
+):
+    if payload is not None:
+        new_value = payload.value
+        group_name = payload.group_name
+    elif value is not None:
+        new_value = value
+        group_name = None
+    else:
+        raise HTTPException(status_code=400, detail="Missing value for config update")
+
+    await db_ops.update_config_value(conn, key, new_value, group_name)
+    return {"key": key, "value": new_value, "group_name": group_name}
+
+@router.get("/sort-headers")
+async def get_sort_headers(conn: asyncpg.Connection = Depends(get_db)):
+    return await db_ops.get_sort_headers(conn)
+
+@router.post("/sort-headers")
+async def save_sort_header(update: SortHeaderUpdate, conn: asyncpg.Connection = Depends(get_db)):
+    await db_ops.update_sort_header_name(conn, update.filename, update.header, update.name)
+    return {"message": "Sort header name saved"}
+
 
 @router.get("/status-tracker")
 async def get_status_tracker(conn: asyncpg.Connection = Depends(get_db)):
@@ -120,6 +159,8 @@ async def get_status_tracker(conn: asyncpg.Connection = Depends(get_db)):
 async def get_app_settings():
     """Возвращает текущие системные настройки приложения."""
     return {
+        "TENANT_ID": settings.TENANT_ID,
+        "USER_ID": settings.USER_ID,
         "BASE_URL": settings.BASE_URL,
         "REQUEST_TIMEOUT": settings.REQUEST_TIMEOUT,
         "ES_HOST": settings.ES_HOST,
@@ -133,8 +174,6 @@ async def get_app_settings():
         "DB_NAME": settings.DB_NAME,
         "DB_USER": settings.DB_USER,
         "DB_PASSWORD": settings.DB_PASSWORD,
-        "KAFKA_BOOTSTRAP_SERVERS": settings.KAFKA_BOOTSTRAP_SERVERS,
-        "KAFKA_TOPIC_NAME": settings.KAFKA_TOPIC_NAME,
     }
 
 @router.post("/app-settings")

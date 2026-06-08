@@ -25,6 +25,15 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
+            <a href="/commands-page" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+                <span>📋</span> Команды
+            </a>
+            <a href="/index-db" target="_blank" rel="noopener noreferrer" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+                <span>🗃️</span> Index DB
+            </a>
+            <a href="/current-patient" target="_blank" rel="noopener noreferrer" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
+                <span>👤</span> Текущий пациент
+            </a>
             <a href="/settings" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm flex items-center gap-1.5">
                 <span>⚙️</span> Настройки
             </a>
@@ -42,7 +51,7 @@
                     <span>📋 Команды</span>
                     <span id="cmdCount" class="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-200/50">...</span>
                 </h3>
-                <div class="space-y-1.5 max-h-[65vh] overflow-y-auto pr-1" id="commandsList"></div>
+                <div class="space-y-1.5 max-h-[80vh] overflow-y-auto pr-1" id="commandsList"></div>
             </div>
         </aside>
 
@@ -63,18 +72,20 @@
                     <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Payload Editor</h4>
                     <span class="text-[10px] text-slate-400 font-mono">JSON Format</span>
                 </div>
-                <textarea id="payloadEditor" class="w-full h-80 bg-slate-50 border border-slate-200 rounded-lg p-3 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y"></textarea>
+                <textarea id="payloadEditor" class="w-full h-auto bg-slate-50 border border-slate-200 rounded-lg p-3 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y overflow-hidden" style="height:auto"></textarea>
                 <div class="flex flex-wrap gap-2.5">
                     <button id="sendBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-1.5"><span>📤</span> HTTP</button>
-                    <button id="sendKafkaBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-1.5"><span>📡</span> Kafka</button>
                     <button id="resetBtn" class="bg-white hover:bg-slate-50 border border-slate-300 py-2 px-4 rounded-lg text-sm">Сброс</button>
                     <button id="reloadConfigBtn" class="bg-white hover:bg-slate-50 border border-slate-300 py-2 px-4 rounded-lg text-sm">Resolve БД</button>
                 </div>
             </section>
 
             <section class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h4 class="text-sm font-bold text-slate-700 mb-4">⚡ Быстрые параметры</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-60 overflow-y-auto" id="quickFormFields"></div>
+                <h4 class="text-sm font-bold text-slate-700 mb-4">Переменные</h4>
+                <div id="commandVariables" class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-800 hidden">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Переменные</div>
+                    <div id="commandVariablesList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+                </div>
                 <div class="flex flex-wrap gap-2.5 border-t border-slate-200 mt-4 pt-4">
                     <button id="loadJsonToFormBtn" class="bg-slate-100 py-1.5 px-4 rounded-lg text-xs">Загрузить в форму</button>
                     <button id="updateJsonFromFormBtn" class="bg-slate-100 py-1.5 px-4 rounded-lg text-xs">Обновить JSON</button>
@@ -86,17 +97,6 @@
         <section class="xl:col-span-4 flex flex-col gap-5 bg-white border border-slate-200 rounded-xl p-5 shadow-sm h-[82vh]">
             <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-1.5"><span>📡</span> Трассировка</h3>
             
-            <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <div>
-                    <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">Tenant ID</label>
-                    <input type="text" id="tenantId" value="14932313369" class="bg-white border border-slate-300 rounded px-2.5 py-1 text-xs w-full">
-                </div>
-                <div>
-                    <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">User ID</label>
-                    <input type="text" id="userId" value="1" class="bg-white border border-slate-300 rounded px-2.5 py-1 text-xs w-full">
-                </div>
-            </div>
-
             <div class="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                 <input type="checkbox" id="autoExportCheckbox" class="w-4 h-4 cursor-pointer">
                 <label for="autoExportCheckbox" class="text-xs font-semibold text-slate-700 cursor-pointer">Авто-выгрузка индекса</label>
@@ -138,6 +138,8 @@
     let currentTemplate = null;
     let autoExportTimeout = null;
     let loadedCommands = [];
+    const defaultTenantId = '14932313369';
+    const defaultUserId = '1';
 
     const quickFields = [
         { key: "assignmentCompositionUid", label: "UID назначения" },
@@ -196,22 +198,52 @@
         loadedCommands = data.commands;
         document.getElementById('cmdCount').textContent = loadedCommands.length;
         commandsListDiv.innerHTML = '';
-        loadedCommands.forEach((cmd, i) => {
-            const div = document.createElement('div');
-            div.className = 'p-3 my-1 bg-white border border-slate-200 rounded-lg cursor-pointer text-xs hover:border-indigo-300 transition-all';
-            div.innerHTML = `<span class="font-mono text-slate-500 mr-2">${(i+1).toString().padStart(2,'0')}</span> ${cmd}`;
-            div.onclick = async () => {
-                currentCommandName = cmd;
-                const r = await fetch(`/template/${encodeURIComponent(cmd)}`);
-                const d = await r.json();
-                currentTemplate = d.template;
-                payloadEditor.value = JSON.stringify(currentTemplate, null, 2);
-                loadJsonToForm();
-                document.querySelectorAll('#commandsList div').forEach(el => el.classList.remove('bg-indigo-50', 'border-indigo-300'));
-                div.classList.add('bg-indigo-50', 'border-indigo-300');
-            };
-            commandsListDiv.appendChild(div);
+
+        const groups = {};
+        loadedCommands.forEach(cmd => {
+            const group = cmd.group_name || 'default';
+            if (!groups[group]) groups[group] = [];
+            groups[group].push(cmd);
         });
+
+        let commandNumber = 1;
+        Object.keys(groups).sort().forEach(groupName => {
+            const header = document.createElement('div');
+            header.className = 'mt-4 mb-2 px-3 py-2 bg-slate-100 text-slate-700 text-[11px] font-semibold uppercase tracking-wide rounded-lg border border-slate-200';
+            header.textContent = groupName;
+            commandsListDiv.appendChild(header);
+
+            groups[groupName].forEach((cmd, i) => {
+                const div = document.createElement('div');
+                div.className = 'p-2 my-1 bg-white border border-slate-200 rounded-lg cursor-pointer text-[11px] hover:border-indigo-300 transition-all';
+                div.innerHTML = `
+                    <div class="flex justify-between items-start gap-2">
+                        <span class="font-mono text-[10px] text-slate-500">${commandNumber.toString().padStart(2, '0')}</span>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-slate-900 truncate text-[12px]">${cmd.name}</div>
+                        </div>
+                    </div>
+                `;
+                commandNumber += 1;
+                div.onclick = async () => {
+                    currentCommandName = cmd.name;
+                    const r = await fetch(`/template/${encodeURIComponent(cmd.name)}`);
+                    const d = await r.json();
+                    currentTemplate = d.template;
+                    payloadEditor.value = JSON.stringify(currentTemplate, null, 2);
+                    loadJsonToForm();
+                    adjustPayloadEditorHeight();
+                    document.querySelectorAll('#commandsList div').forEach(el => el.classList.remove('bg-indigo-50', 'border-indigo-300'));
+                    div.classList.add('bg-indigo-50', 'border-indigo-300');
+                };
+                commandsListDiv.appendChild(div);
+            });
+        });
+    }
+
+    function adjustPayloadEditorHeight() {
+        payloadEditor.style.height = 'auto';
+        payloadEditor.style.height = `${payloadEditor.scrollHeight}px`;
     }
 
     function loadJsonToForm() {
@@ -221,7 +253,11 @@
                 const inp = document.getElementById(`field_${f.key}`);
                 if (inp) inp.value = p[f.key] || "";
             });
-        } catch(e) {}
+            renderCommandVariables();
+        } catch(e) {
+            renderCommandVariables();
+        }
+        adjustPayloadEditorHeight();
     }
 
     function updateJsonFromForm() {
@@ -232,8 +268,58 @@
                 if(val) p[f.key] = val;
             });
             payloadEditor.value = JSON.stringify(p, null, 2);
+            renderCommandVariables();
             showStatus('JSON обновлен');
-        } catch(e) {}
+        } catch(e) {
+            renderCommandVariables();
+        }
+    }
+
+    function extractCommandVariables(payload) {
+        const variables = new Set();
+
+        function recurse(value) {
+            if (typeof value === 'string') {
+                if (value.startsWith('@config:')) {
+                    variables.add(value.substring('@config:'.length));
+                } else if (value === '@now_iso') {
+                    variables.add('@now_iso');
+                }
+            } else if (Array.isArray(value)) {
+                value.forEach(recurse);
+            } else if (value && typeof value === 'object') {
+                Object.values(value).forEach(recurse);
+            }
+        }
+
+        recurse(payload);
+        return Array.from(variables).sort();
+    }
+
+    function renderCommandVariables() {
+        const list = document.getElementById('commandVariablesList');
+        const panel = document.getElementById('commandVariables');
+        list.innerHTML = '';
+
+        try {
+            const payload = JSON.parse(payloadEditor.value);
+            const vars = extractCommandVariables(payload);
+
+            if (!vars.length) {
+                panel.classList.add('hidden');
+                return;
+            }
+
+            vars.forEach(variable => {
+                const item = document.createElement('div');
+                item.className = 'bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700';
+                item.textContent = variable;
+                list.appendChild(item);
+            });
+            panel.classList.remove('hidden');
+        } catch (e) {
+            panel.classList.add('hidden');
+        }
     }
 
     async function handleRequest(url) {
@@ -241,8 +327,8 @@
         const p = JSON.parse(payloadEditor.value);
         const body = { 
             command_name: currentCommandName, 
-            tenant_id: document.getElementById('tenantId').value, 
-            user_id: document.getElementById('userId').value, 
+            tenant_id: defaultTenantId, 
+            user_id: defaultUserId, 
             override_payload: p 
         };
         const r = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -254,34 +340,29 @@
     window.onload = () => {
         loadCommands();
         fetchStatusTracker();
-        const qf = document.getElementById('quickFormFields');
-        quickFields.forEach(f => {
-            qf.innerHTML += `<div class="flex flex-col gap-1"><label class="text-[10px] font-bold text-slate-500 uppercase">${f.label}</label><input type="text" id="field_${f.key}" class="border rounded px-2 py-1.5 text-xs"></div>`;
-        });
         document.getElementById('sendBtn').onclick = () => handleRequest('/execute');
-        document.getElementById('sendKafkaBtn').onclick = () => handleRequest('/execute');
         document.getElementById('resetBtn').onclick = () => { payloadEditor.value = JSON.stringify(currentTemplate, null, 2); loadJsonToForm(); };
         document.getElementById('reloadConfigBtn').onclick = async () => {
             const r = await fetch('/resolve', { method: 'POST', headers: {'Content-Type':'application/json'}, body: payloadEditor.value });
             const d = await r.json();
             payloadEditor.value = JSON.stringify(d.resolved, null, 2);
             showStatus('Данные БД подставлены');
+            adjustPayloadEditorHeight();
         };
         document.getElementById('loadJsonToFormBtn').onclick = loadJsonToForm;
         document.getElementById('updateJsonFromFormBtn').onclick = updateJsonFromForm;
+        payloadEditor.addEventListener('input', () => { renderCommandVariables(); adjustPayloadEditorHeight(); });
         
         // Исправленная кнопка поиска
         document.getElementById('sendGetByUidBtn').onclick = async () => {
              const uid = document.getElementById('compositionUidInput').value.trim();
-             const tenant = document.getElementById('tenantId').value.trim();
-             const user = document.getElementById('userId').value.trim();
              
              if (!uid) return;
 
              const body = { 
                  command_name: "Найти назначение по CompositionUid (GET)", 
-                 tenant_id: tenant, 
-                 user_id: user, 
+                 tenant_id: defaultTenantId, 
+                 user_id: defaultUserId, 
                  override_payload: { compositionUid: uid } 
              };
              

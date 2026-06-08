@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Команды — API Integration Service</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-6 selection:bg-indigo-500 selection:text-white">
+<div class="max-w-[1600px] mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">📦</span>
+            <div>
+                <h1 class="text-xl font-bold text-slate-950">Команды</h1>
+                <p class="text-xs text-slate-500">Редактирование и сохранение шаблонов из таблицы <code class="font-mono">request_templates</code>.</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="/" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm">⬅️ Главная</a>
+            <a href="/settings" class="bg-white hover:bg-slate-50 text-slate-600 font-semibold py-2 px-4 rounded-lg border border-slate-300 shadow-sm transition-all duration-150 text-sm">⚙️ Настройки</a>
+            <button id="refreshTemplatesBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all duration-150 text-sm">Обновить список</button>
+        </div>
+    </header>
+
+    <div class="p-6 space-y-6">
+        <div id="statusAlert" class="hidden px-4 py-3 rounded-lg border text-sm font-semibold"></div>
+
+        <section class="space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Список шаблонов команд</h2>
+                    <p class="text-xs text-slate-500">Изменяйте заголовок, метод, путь, группу и JSON payload. Сохранение происходит по нажатию кнопки.</p>
+                </div>
+                <div class="text-xs text-slate-500">Всего шаблонов: <span id="templatesCount">...</span></div>
+            </div>
+            <div id="templates-container" class="space-y-4"></div>
+        </section>
+    </div>
+</div>
+
+<script>
+    const statusAlert = document.getElementById('statusAlert');
+    const templatesContainer = document.getElementById('templates-container');
+    const templatesCount = document.getElementById('templatesCount');
+    const refreshTemplatesBtn = document.getElementById('refreshTemplatesBtn');
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function showAlert(text, isError = false) {
+        statusAlert.textContent = text;
+        statusAlert.className = 'px-4 py-3 rounded-lg border text-sm font-semibold block ' +
+            (isError ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200');
+        setTimeout(() => {
+            statusAlert.className = 'hidden';
+        }, 5000);
+    }
+
+    async function loadTemplates() {
+        try {
+            const response = await fetch('/commands/templates');
+            const data = await response.json();
+            templatesContainer.innerHTML = '';
+            templatesCount.textContent = data.templates.length;
+
+            data.templates.forEach(template => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm';
+                card.innerHTML = `
+                    <div class="flex flex-col lg:flex-row gap-4 justify-between items-start">
+                        <div class="flex-1 space-y-3">
+                            <div class="grid grid-cols-1 xl:grid-cols-[1fr_160px] gap-3">
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-500 uppercase">ID</label>
+                                    <div class="mt-1 text-sm text-slate-700 font-medium">${template.id}</div>
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-500 uppercase">Группа</label>
+                                    <input id="group_name-${template.id}" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm" value="${escapeHtml(template.group_name || 'default')}" />
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-500 uppercase">Название</label>
+                                    <input id="name-${template.id}" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm" value="${escapeHtml(template.name)}" />
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-500 uppercase">Метод</label>
+                                    <input id="method-${template.id}" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm" value="${escapeHtml(template.method)}" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="text-[11px] font-semibold text-slate-500 uppercase">Путь</label>
+                                <input id="path-${template.id}" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm" value="${escapeHtml(template.path)}" />
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-stretch sm:items-end gap-3">
+                            <button id="save-${template.id}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all duration-150 text-sm w-full">💾 Сохранить</button>
+                            <div id="status-text-${template.id}" class="text-xs text-slate-500 text-right"></div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="text-[11px] font-semibold text-slate-500 uppercase">Payload JSON</label>
+                        <textarea id="payload-${template.id}" rows="10" class="mt-1 w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono text-slate-800 resize-vertical">${escapeHtml(JSON.stringify(template.payload || {}, null, 2))}</textarea>
+                    </div>
+                `;
+
+                templatesContainer.appendChild(card);
+
+                const saveButton = document.getElementById(`save-${template.id}`);
+                saveButton.addEventListener('click', () => saveTemplate(template.id));
+            });
+        } catch (err) {
+            showAlert('Ошибка загрузки списка шаблонов: ' + err.message, true);
+        }
+    }
+
+    async function saveTemplate(id) {
+        const statusText = document.getElementById(`status-text-${id}`);
+        const nameInput = document.getElementById(`name-${id}`);
+        const methodInput = document.getElementById(`method-${id}`);
+        const pathInput = document.getElementById(`path-${id}`);
+        const groupInput = document.getElementById(`group_name-${id}`);
+        const payloadTextarea = document.getElementById(`payload-${id}`);
+
+        statusText.textContent = 'Сохраняем...';
+        try {
+            let payloadValue = JSON.parse(payloadTextarea.value || '{}');
+            if (typeof payloadValue === 'string') {
+                payloadValue = JSON.parse(payloadValue);
+            }
+            if (typeof payloadValue !== 'object' || payloadValue === null || Array.isArray(payloadValue)) {
+                throw new Error('Payload должен быть JSON-объектом');
+            }
+            const body = {
+                name: nameInput.value.trim(),
+                method: methodInput.value.trim().toUpperCase() || 'POST',
+                path: pathInput.value.trim(),
+                group_name: groupInput.value.trim() || 'default',
+                payload: payloadValue
+            };
+
+            const res = await fetch(`/template/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                let errorMessage = res.statusText || `Ошибка ${res.status}`;
+                if (data) {
+                    if (typeof data.detail === 'string') {
+                        errorMessage = data.detail;
+                    } else if (data.detail) {
+                        errorMessage = JSON.stringify(data.detail);
+                    } else if (typeof data === 'string') {
+                        errorMessage = data;
+                    } else {
+                        errorMessage = JSON.stringify(data);
+                    }
+                }
+                statusText.textContent = 'Ошибка: ' + errorMessage;
+                statusText.className = 'text-xs text-red-600 text-right';
+                return;
+            }
+
+            statusText.textContent = 'Сохранено';
+            statusText.className = 'text-xs text-emerald-600 text-right';
+        } catch (err) {
+            statusText.textContent = 'JSON payload некорректен: ' + err.message;
+            statusText.className = 'text-xs text-red-600 text-right';
+        }
+    }
+
+    refreshTemplatesBtn.addEventListener('click', () => loadTemplates());
+    window.addEventListener('load', loadTemplates);
+</script>
+</body>
+</html>
