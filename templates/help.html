@@ -125,20 +125,6 @@
                     </div>
                 </section>
 
-                <!-- Команды и шаблоны -->
-                <section id="commands" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                    <h2 class="text-xl font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 mb-4">📋 Команды и шаблоны</h2>
-                    <div class="space-y-3 text-slate-700">
-                        <p>Страница <a href="/commands-page" class="text-indigo-600 underline">Команды</a> позволяет управлять шаблонами в таблице <code>request_templates</code>.</p>
-                        <ul class="list-disc pl-6 space-y-1">
-                            <li>Просмотр всех шаблонов с полями: ID, группа, название, метод HTTP, путь, payload (JSON).</li>
-                            <li>Редактирование заголовка, метода, пути, группы и payload.</li>
-                            <li>Сохранение изменений отправляет PUT-запрос на <code>/template/{id}</code>.</li>
-                            <li>Payload валидируется как корректный JSON-объект, затем сохраняется в БД.</li>
-                        </ul>
-                        <p class="mt-2">Шаблоны инициализируются из <code>app/default_templates.py</code> при первом запуске. Для каждого шаблона в <code>models.py</code> определена Pydantic-модель (сгенерирована из Swagger), что позволяет валидировать payload на стороне сервера перед отправкой.</p>
-                    </div>
-                </section>
 
                 <!-- Переменные и подстановка -->
                 <section id="variables" class="help-section bg-white border border-slate-200 rounded-xl p-6 shadow-sm">

@@ -1,14 +1,12 @@
 import httpx
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Tuple
-
 from app.config import settings
-
-
+#Текущая дата
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace("+00:00", "Z")
 
-
+#Замена маркеров на конкретные значения (в командах)
 def resolve_value(v: Any, config: Dict[str, str]) -> Any:
     if isinstance(v, str):
         if v.startswith('@config:'):
@@ -20,27 +18,23 @@ def resolve_value(v: Any, config: Dict[str, str]) -> Any:
         return {k: resolve_value(val, config) for k, val in v.items()}
     elif isinstance(v, list):
         return [resolve_value(item, config) for item in v]
-    elif isinstance(v, tuple):
-        return tuple(resolve_value(item, config) for item in v)
-    elif isinstance(v, set):
-        return {resolve_value(item, config) for item in v}
     return v
 
-
+#Замена маркеров на конкретные значения
 def substitute_markers(payload: Dict[str, Any], config: Dict[str, str]) -> Dict[str, Any]:
     return resolve_value(payload, config)
 
-
+#отправка запроса
 async def send_request_async(
-    method: str,
-    url: str,
-    payload: Optional[Dict[str, Any]],
-    tenant_id: str,
+    method: str, 
+    url: str, 
+    payload: Optional[Dict[str, Any]], 
+    tenant_id: str, 
     user_id: str
 ) -> Tuple[int, Any, Optional[str]]:
     headers = {
-        "Content-Type": "application/json",
-        "X-Tenant-Id": tenant_id,
+        "Content-Type": "application/json", 
+        "X-Tenant-Id": tenant_id, 
         "X-User-Id": user_id
     }
     async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
@@ -49,7 +43,7 @@ async def send_request_async(
                 resp = await client.get(url, params=payload, headers=headers)
             else:
                 resp = await client.post(url, json=payload, headers=headers)
-
+            
             try:
                 data = resp.json()
             except ValueError:
